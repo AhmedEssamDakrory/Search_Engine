@@ -31,7 +31,7 @@ public class CrawlerThread extends Thread {
 			
 			String url = linkedQueue.poll();
 			
-			// check if null 
+			// check if blank URL 
 			if(url == null){
 				continue;
 			}
@@ -61,7 +61,7 @@ public class CrawlerThread extends Thread {
 	private void extractLinks(Document doc) throws IOException {
         Elements links = doc.select("a[href]");
         for (Element link : links) {  
-            String extractedUrl = link.attr("href");
+            String extractedUrl = link.attr("abs:href");
             extractedUrl = this.normalizeUrl(extractedUrl);
             if(this.urlTest(extractedUrl)) {
             	linkedQueue.offer(extractedUrl);
@@ -76,10 +76,6 @@ public class CrawlerThread extends Thread {
 			if(this.concMap.get(url) != null) {
 				return false;
 			}
-		}
-		// check if not absolute address..
-		if (URI.create(url).getHost() == null ) {
-			return false;
 		}
 		// To Do check robots.txt...
 		return true;
