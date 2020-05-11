@@ -14,7 +14,7 @@ import java.util.regex.Matcher;
 
 public class RobotsChecker {
 	
-	ConcurrentHashMap<String, RobotsRules> concMap;
+	private ConcurrentHashMap<String, RobotsRules> concMap;
 	
 	public RobotsChecker() {
 		this.concMap = new ConcurrentHashMap<String, RobotsRules>();
@@ -45,7 +45,7 @@ public class RobotsChecker {
 		return true;
 	}
 	
-	public void putifAbsentRules(String url) {
+	private void putifAbsentRules(String url) {
 		
 		String hostName = URI.create(url).getHost();
 		RobotsRules rules = this.concMap.putIfAbsent(hostName, new RobotsRules());
