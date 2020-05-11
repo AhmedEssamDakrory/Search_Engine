@@ -34,7 +34,7 @@ public class WebCrawler {
 	}
 	
 	private void initQueueWithSeededUrls() throws IOException {
-		File file = new File("Crawler_seeded_urls.txt");   
+		File file = new File("data/Crawler_seeded_urls.txt");
 		BufferedReader br = new BufferedReader(new FileReader(file)); 
 		String st; 
 		while ((st = br.readLine()) != null) 
