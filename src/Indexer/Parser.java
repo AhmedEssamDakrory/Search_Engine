@@ -25,11 +25,11 @@ public class Parser {
     }
 
     public static void processElement(Element paragraph, Integer score){
-        String[] words = paragraph.text().toLowerCase().split("\\s");;
+        String[] words = paragraph.text().toLowerCase().split("\\s");
         for (String word: words){
             s.add(word.toCharArray(), word.length());
             s.stem();
-            System.out.println(s.toString());
+            System.out.println(s.toString() + " " + score.toString());
         }
     }
 
@@ -38,19 +38,12 @@ public class Parser {
         String html = readHtml(path);
         Document document = Jsoup.parse(html);
 
-        processElement(document.getElementsByTag("title").get(0), 100);
-        System.out.println("Title: " + document.title());
-        System.out.println("Headers:\n");
-        Elements headers = document.getElementsByTag("h1");
-        for (Element header : headers) {
-            System.out.println(header.text());
-            processElement(header, 5);
-        }
-        System.out.println("Paragraphs:\n");
-        Elements paragraphs = document.getElementsByTag("p");
-        for (Element paragraph : paragraphs) {
-            System.out.println(paragraph.text());
-            processElement(paragraph, 0);
+        for (String tagName: Constants.SCORES.keySet()) {
+            Elements tagsText = document.getElementsByTag(tagName);
+            Integer score = Constants.SCORES.get(tagName);
+            for (Element tagText : tagsText) {
+                processElement(tagText, score);
+            }
         }
     }
 }
