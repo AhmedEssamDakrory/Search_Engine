@@ -35,12 +35,10 @@ public class RobotsChecker {
 		String hostName = null;
 		try {
 			hostName = new URL(url).getHost();
-		} catch (MalformedURLException e1) {
-			//e1.printStackTrace();
-		}
-		if(hostName == null) {
+		} catch (MalformedURLException e) {
 			return false;
 		}
+		
 		List<String> disallowedUrls = this.concMap.get(hostName).disallowedUrls;
 		for(String disallowdUrl : disallowedUrls) {
 			// match
@@ -84,8 +82,13 @@ public class RobotsChecker {
 	}
 	
 	public List<String> readRobotsFile(String url){
-		url = URI.create(url).getScheme()+"://"+URI.create(url).getHost()+"/robots.txt";
 		List<String> lines = new ArrayList<String>();
+		try {
+			URL ur = new URL(url);
+			url = ur.getProtocol()+"://"+ur.getHost()+"/robots.txt";
+		} catch (MalformedURLException e1) {
+			return lines;
+		} 
 		try {
 			BufferedReader br = new BufferedReader( new InputStreamReader(new URL(url).openStream()));
 			String line = null;

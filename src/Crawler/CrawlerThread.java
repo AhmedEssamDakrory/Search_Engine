@@ -97,7 +97,7 @@ public class CrawlerThread extends Thread {
         Elements links = doc.select("a[href]");
         for (Element link : links) {  
             String extractedUrl = link.attr("abs:href");
-            extractedUrl = this.normalizeUrl(extractedUrl);
+            extractedUrl = UrlNormalizer.getNormalizedURL(extractedUrl);
             if(extractedUrl == null) continue;
             if(this.urlTest(extractedUrl)) {
             	linkedQueue.offer(extractedUrl);
@@ -115,15 +115,5 @@ public class CrawlerThread extends Thread {
 		}
 		// check robots.txt...
 		return this.robotsChecker.isUrlAllowed(url);
-	}
-	
-	private String normalizeUrl(String url) {
-		String s = null;
-		try {
-			s = URI.create(url).normalize().toString();
-		} catch(java.lang.IllegalArgumentException e) {
-			//
-		}
-		return s;
 	}
 }
