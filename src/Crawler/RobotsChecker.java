@@ -32,7 +32,15 @@ public class RobotsChecker {
 	
 	public boolean isUrlAllowed(String url) {
 		this.putifAbsentRules(url);
-		String hostName = URI.create(url).getHost();
+		String hostName = null;
+		try {
+			hostName = new URL(url).getHost();
+		} catch (MalformedURLException e1) {
+			//e1.printStackTrace();
+		}
+		if(hostName == null) {
+			return false;
+		}
 		List<String> disallowedUrls = this.concMap.get(hostName).disallowedUrls;
 		for(String disallowdUrl : disallowedUrls) {
 			// match
@@ -46,8 +54,17 @@ public class RobotsChecker {
 	}
 	
 	private void putifAbsentRules(String url) {
+		String hostName = null;
+		try {
+			hostName = new URL(url).getHost();
+		} catch (MalformedURLException e1) {
+			//e1.printStackTrace();
+		}
 		
-		String hostName = URI.create(url).getHost();
+		if(hostName == null) {
+			return;
+		}
+		
 		RobotsRules rules = this.concMap.putIfAbsent(hostName, new RobotsRules());
 
 		if(rules == null) {
@@ -60,7 +77,7 @@ public class RobotsChecker {
 				try {
 					rules.wait();
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					//e.printStackTrace();
 				}
 			}
 		}
@@ -76,9 +93,9 @@ public class RobotsChecker {
 	            lines.add(line);
 	        }
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		
 		return lines;
