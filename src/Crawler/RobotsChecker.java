@@ -45,6 +45,7 @@ public class RobotsChecker {
 			Pattern p = Pattern.compile(disallowdUrl);//. represents single character  
 			Matcher m = p.matcher(url);  
 			if(m.find()) {
+				LogOutput.printMessage("URL disallowed By robots.txt : " + url);
 				return false;
 			}
 		}
@@ -66,6 +67,7 @@ public class RobotsChecker {
 		RobotsRules rules = this.concMap.putIfAbsent(hostName, new RobotsRules());
 
 		if(rules == null) {
+			LogOutput.printMessage("Host : "+ hostName + " first time prepare robots.txt");
 			this.update(hostName, this.parseRobotsFile(this.readRobotsFile(url)));
 			return;
 		}
@@ -73,6 +75,7 @@ public class RobotsChecker {
 		synchronized(rules) {
 			while(!rules.ready) {
 				try {
+					LogOutput.printMessage("Host : "+ hostName + " Waiting for robots.txt file");
 					rules.wait();
 				} catch (InterruptedException e) {
 					//e.printStackTrace();

@@ -32,6 +32,7 @@ public class WebCrawler {
 		threads = new ArrayList<Thread>();
 		this.pagesCount = new AtomicInteger(0);
 		this.robotsChecker = new RobotsChecker();
+		LogOutput.init();
 	}
 	
 	private void initQueueWithSeededUrls() throws IOException {
@@ -65,6 +66,7 @@ public class WebCrawler {
 				e.printStackTrace();
 			}
 		}
+		
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException {

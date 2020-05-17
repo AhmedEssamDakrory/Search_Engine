@@ -55,8 +55,8 @@ public class CrawlerThread extends Thread {
 					if(this.isTerminateCondition()) {
 						break;
 					}
-					System.out.println(this.pagesCount);
 					this.downloadPage(doc);
+					this.concMap.put(url, true); // mark as visited..
 					this.extractLinks(doc);
 				}
 			} catch (IOException e) {
@@ -110,6 +110,7 @@ public class CrawlerThread extends Thread {
 		// check if not visited before..
 		synchronized(this.concMap) {
 			if(this.concMap.get(url) != null) {
+				LogOutput.printMessage("URL visited before : "+url);
 				return false;
 			}
 		}
