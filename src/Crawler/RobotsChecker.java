@@ -32,13 +32,20 @@ public class RobotsChecker {
 	
 	public boolean isUrlAllowed(String url) {
 		this.putifAbsentRules(url);
-		String hostName = URI.create(url).getHost();
+		String hostName = null;
+		try {
+			hostName = new URL(url).getHost();
+		} catch (MalformedURLException e) {
+			return false;
+		}
+		
 		List<String> disallowedUrls = this.concMap.get(hostName).disallowedUrls;
 		for(String disallowdUrl : disallowedUrls) {
 			// match
 			Pattern p = Pattern.compile(disallowdUrl);//. represents single character  
 			Matcher m = p.matcher(url);  
 			if(m.find()) {
+				LogOutput.printMessage("URL disallowed By robots.txt : " + url);
 				return false;
 			}
 		}
@@ -46,11 +53,21 @@ public class RobotsChecker {
 	}
 	
 	private void putifAbsentRules(String url) {
+		String hostName = null;
+		try {
+			hostName = new URL(url).getHost();
+		} catch (MalformedURLException e1) {
+			//e1.printStackTrace();
+		}
 		
-		String hostName = URI.create(url).getHost();
+		if(hostName == null) {
+			return;
+		}
+		
 		RobotsRules rules = this.concMap.putIfAbsent(hostName, new RobotsRules());
 
 		if(rules == null) {
+			LogOutput.printMessage("Host : "+ hostName + " first time prepare robots.txt");
 			this.update(hostName, this.parseRobotsFile(this.readRobotsFile(url)));
 			return;
 		}
@@ -58,17 +75,23 @@ public class RobotsChecker {
 		synchronized(rules) {
 			while(!rules.ready) {
 				try {
+					LogOutput.printMessage("Host : "+ hostName + " Waiting for robots.txt file");
 					rules.wait();
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					//e.printStackTrace();
 				}
 			}
 		}
 	}
 	
 	public List<String> readRobotsFile(String url){
-		url = URI.create(url).getScheme()+"://"+URI.create(url).getHost()+"/robots.txt";
 		List<String> lines = new ArrayList<String>();
+		try {
+			URL ur = new URL(url);
+			url = ur.getProtocol()+"://"+ur.getHost()+"/robots.txt";
+		} catch (MalformedURLException e1) {
+			return lines;
+		} 
 		try {
 			BufferedReader br = new BufferedReader( new InputStreamReader(new URL(url).openStream()));
 			String line = null;
@@ -76,9 +99,9 @@ public class RobotsChecker {
 	            lines.add(line);
 	        }
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		
 		return lines;

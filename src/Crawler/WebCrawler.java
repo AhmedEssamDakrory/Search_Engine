@@ -2,18 +2,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /*
  * To Do .....
- * try web utilities.java instead of Jsoup (time out) ...
- * data base ....  
- * Robots.txt
+ * database ....  
  * recrawling....
  * check images .....
  */
@@ -21,9 +20,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class WebCrawler {
 
 	LinkedBlockingQueue<String> linkedQueue;
-	Map<String, Boolean> concMap;
+	ConcurrentHashMap<String, Boolean> concMap;
 	List<Thread> threads;
 	private AtomicInteger pagesCount;
+	RobotsChecker robotsChecker;
 	
 	
 	public WebCrawler() throws IOException {
@@ -31,10 +31,12 @@ public class WebCrawler {
 		linkedQueue = new LinkedBlockingQueue<String>();
 		threads = new ArrayList<Thread>();
 		this.pagesCount = new AtomicInteger(0);
+		this.robotsChecker = new RobotsChecker();
+		LogOutput.init();
 	}
 	
 	private void initQueueWithSeededUrls() throws IOException {
-		File file = new File("data/Crawler_seeded_urls.txt");
+		File file = new File("seeders.txt");   
 		BufferedReader br = new BufferedReader(new FileReader(file)); 
 		String st; 
 		while ((st = br.readLine()) != null) 
@@ -42,12 +44,13 @@ public class WebCrawler {
 		br.close();
 	}
 	
-	public void startCawling(int numberOfThreads) throws IOException {
+	public void startCrawling(int numberOfThreads) throws IOException {
 		// initialize...
 		this.initQueueWithSeededUrls();
 		// start threads.. 
 		for(int i = 0 ;i < numberOfThreads; ++i) {
-			Thread t = new Thread(new CrawlerThread(this.linkedQueue, this.concMap, this.pagesCount));
+			Thread t = new Thread(new CrawlerThread(this.linkedQueue, this.concMap,
+					this.pagesCount, this.robotsChecker));
 			t.start();
 			threads.add(t);
 		}
@@ -63,17 +66,18 @@ public class WebCrawler {
 				e.printStackTrace();
 			}
 		}
+		
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
-		
-		double startTime = (double)System.nanoTime();
 		WebCrawler crawler = new WebCrawler();
-		crawler.startCawling(20);
+		double startTime  = (double)System.nanoTime();
+		crawler.startCrawling(20);
 		double endTime  = (double)System.nanoTime();
 		double totalTime = (endTime - startTime)* (1e-9);
 		System.out.println("finished");
 		System.out.println(totalTime);
+		
 	}
 
 }
