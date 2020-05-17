@@ -49,9 +49,9 @@ public class UrlNormalizer {
 	
 	public static String sortQueryParamerters(String query) {
 		if(query == null) return "";
-		String[] paramerters = query.split("&");
+		String[] parameters = query.split("&");
 		SortedMap<String, String> sortedPar = new TreeMap<String, String>(); 
-		for(String s : paramerters) {
+		for(String s : parameters) {
 			int idxSep = s.indexOf('=');
 			String par = s.substring(0, idxSep);
 			String val = s.substring(idxSep+1);

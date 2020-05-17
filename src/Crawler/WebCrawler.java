@@ -44,7 +44,7 @@ public class WebCrawler {
 		br.close();
 	}
 	
-	public void startCawling(int numberOfThreads) throws IOException {
+	public void startCrawling(int numberOfThreads) throws IOException {
 		// initialize...
 		this.initQueueWithSeededUrls();
 		// start threads.. 
@@ -72,7 +72,7 @@ public class WebCrawler {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		WebCrawler crawler = new WebCrawler();
 		double startTime  = (double)System.nanoTime();
-		crawler.startCawling(20);
+		crawler.startCrawling(20);
 		double endTime  = (double)System.nanoTime();
 		double totalTime = (endTime - startTime)* (1e-9);
 		System.out.println("finished");
