@@ -6,6 +6,8 @@ public class Constants {
 	public static final String AGENT = "*";
 
 	//---------Indexer---------
+	public static final String DATABASE_ADDRESS = "mongodb://localhost:27017";
+	public static final String DATABASE_NAME = "search_engine";
 	public static final HashMap<String, Integer> SCORES = new HashMap<String, Integer>(){
 		{
 			put("title", 20);
