@@ -4,6 +4,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -23,8 +24,8 @@ public class ConnectToDB {
 		mongo = new MongoClient( "localhost" , 27017 );
 	    credential = MongoCredential.createCredential(userName, dbName,
 	       password.toCharArray());
-	    System.out.println("Connected to the database successfully");  
-	    database = mongo.getDatabase("myDb"); 
+	    System.out.println("Connected to the database successfully");
+	    database = mongo.getDatabase(dbName);
 	    System.out.println("Credentials ::"+ credential);
 	}
 	
@@ -38,8 +39,6 @@ public class ConnectToDB {
 		} catch(MongoCommandException e) {
 			//
 		}
-		 
-		
 	}
 	
 	private static void dropCrawlerCollections() {
@@ -56,17 +55,36 @@ public class ConnectToDB {
 		collection.insertOne(doc);
 	}
 	
+	public static boolean checkIfCrawledBefore(String url) {
+		MongoCollection<Document> collection = database.getCollection("crawler_info");
+		Document doc = collection.find(Filters.eq("url", url)).first();
+		if(doc == null) return false;
+		return true;
+	}
+	
 	public static void markUrlAsCrawled(String url) {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		collection.updateOne(Filters.eq("url", url), Updates.set("crawled", true));
 	}
 	
-	public static void incUrlPopularity(String url) {
+	public static void incUrlsPopularity(String url) {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		FindIterable<Document> iterDoc = collection.find(Filters.eq("url", url));
-		int popularity = iterDoc.first().getInteger("popularity");
-		System.out.println(popularity);
-		collection.updateOne(Filters.eq("url", url), Updates.set("popularity", popularity+1));
+		synchronized(iterDoc) {
+			try {
+				int popularity = iterDoc.first().getInteger("popularity");
+				collection.updateOne(Filters.eq("url", url), Updates.set("popularity", popularity+1));
+			} catch(NullPointerException e){
+				//
+			}
+		}
+	}
+	
+	public static String getCrawledUrlID(String url) {
+		MongoCollection<Document> collection = database.getCollection("crawler_info");
+		Document doc = collection.find(Filters.eq("url", url)).first();
+		String id = doc.get("_id").toString();
+		return id;
 	}
 	
 	public static List<String> getAllNotCrawledUrls(){
@@ -80,32 +98,31 @@ public class ConnectToDB {
 		return urls;
 	}
 	
+	public static void seededUrlsToCrawl(List<String> l) {
+		MongoCollection<Document> collection = database.getCollection("crawler_info");
+		List<Document> ld = new ArrayList<Document>();
+		for(String url : l) {
+			Document doc = new Document()
+					.append("url", url)
+					.append("crawled", false)
+					.append("popularity", 0);
+			ld.add(doc);
+		}
+		collection.insertMany(ld);
+	}
+	
 	public static void clearDB() {
 		//***************** drop all collections**********************
 		dropCrawlerCollections();
 		
 	}
 	
-	
-	
-	
-
-	
-	public static void main( String args[] ) {  
+	public static void main(String[] args) throws IOException, InterruptedException {
+//		ConnectToDB.establishConnection("search_engine", "team", "1234");
 //		ConnectToDB.clearDB();
-		ConnectToDB.establishConnection("search_engine", "team", "12345");
-		ConnectToDB.clearDB();
-		ConnectToDB.init();
-//		ConnectToDB.createCrawlerCollections();
-		ConnectToDB.insertUrlToBeCrawled("https://google");
-		ConnectToDB.insertUrlToBeCrawled("https://googlegggggggggggg");
-		ConnectToDB.insertUrlToBeCrawled("https://googlehhhhhhhhhhh");
-		ConnectToDB.markUrlAsCrawled("https://googlehhhhhhhhhhh");
-		List<String> l = ConnectToDB.getAllNotCrawledUrls();
-		for(String url : l) {
-			System.out.println(url);
-		}
-//		ConnectToDB.incUrlPopularity("https://google");
-		
-	} 
+//		ConnectToDB.init();
+//		ConnectToDB.insertUrlToBeCrawled("a");
+//		System.out.println(ConnectToDB.getCrawledUrlID("a"));
+	}
+	 
 }
