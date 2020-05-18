@@ -51,6 +51,7 @@ public class ConnectToDB {
 		Document doc = new Document()
 				.append("url", url)
 				.append("crawled", false)
+				.append("visited", false)
 				.append("popularity", 0);
 		collection.insertOne(doc);
 	}
@@ -60,6 +61,11 @@ public class ConnectToDB {
 		Document doc = collection.find(Filters.eq("url", url)).first();
 		if(doc == null) return false;
 		return true;
+	}
+	
+	public static void markAsVisited(String url) {
+		MongoCollection<Document> collection = database.getCollection("crawler_info");
+		collection.updateOne(Filters.eq("url", url), Updates.set("visited", true));
 	}
 	
 	public static void markUrlAsCrawled(String url) {
@@ -109,6 +115,10 @@ public class ConnectToDB {
 			ld.add(doc);
 		}
 		collection.insertMany(ld);
+	}
+	public static void deleteUrl(String url) {
+		MongoCollection<Document> collection = database.getCollection("crawler_info");
+		collection.deleteOne(Filters.eq("url", url));
 	}
 	
 	public static void clearDB() {

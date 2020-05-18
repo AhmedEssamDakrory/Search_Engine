@@ -4,6 +4,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -12,16 +14,17 @@ public class WebCrawler {
 	LinkedBlockingQueue<String> linkedQueue;
 	List<Thread> threads;
 	private AtomicInteger pagesCount;
-	private AtomicInteger pagesInQueue;
+	private AtomicInteger numExtractedLinks;
 	RobotsChecker robotsChecker;
-	
+	ConcurrentHashMap<String,Boolean> isVisited;
 	
 	public WebCrawler() throws IOException {
 		linkedQueue = new LinkedBlockingQueue<String>();
 		threads = new ArrayList<Thread>();
 		this.pagesCount = new AtomicInteger(0);
-		pagesInQueue = new AtomicInteger(0);
+		numExtractedLinks = new AtomicInteger(0);
 		this.robotsChecker = new RobotsChecker();
+		isVisited = new ConcurrentHashMap<String,Boolean>();
 		LogOutput.init();
 	}
 	
@@ -44,8 +47,6 @@ public class WebCrawler {
 				linkedQueue.offer(url);
 			}
 		}
-		
-		
 	}
 	
 	public void startCrawling(int numberOfThreads) throws IOException {
@@ -53,8 +54,8 @@ public class WebCrawler {
 		this.initQueueWithSeededUrls();
 		// start threads.. 
 		for(int i = 0 ;i < numberOfThreads; ++i) {
-			Thread t = new Thread(new CrawlerThread(this.linkedQueue,this.pagesCount,
-					this.pagesInQueue, this.robotsChecker));
+			Thread t = new Thread(new CrawlerThread(this.linkedQueue, this.isVisited, this.numExtractedLinks,
+					this.pagesCount, this.robotsChecker));
 			t.start();
 			threads.add(t);
 		}
@@ -75,7 +76,16 @@ public class WebCrawler {
 	public static void main(String[] args) throws IOException, InterruptedException {
 
 		ConnectToDB.establishConnection("search_engine", "team", "12345");
-		ConnectToDB.clearDB();
+		
+		Scanner sc= new Scanner(System.in);
+		System.out.println("Enter 1 to recrawl from the existing urls in DB.........."); 
+		System.out.println("Or Enter any other number to clear DB and start crawling from the seeders.........."); 
+		int a= sc.nextInt();  
+		sc.close();
+		if(a != 1) {
+			ConnectToDB.clearDB();
+		}
+	
 		ConnectToDB.init();
 	
 		WebCrawler crawler = new WebCrawler();

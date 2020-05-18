@@ -1,3 +1,4 @@
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -18,17 +19,19 @@ public class CrawlerThread extends Thread {
 	
 	LinkedBlockingQueue<String> linkedQueue;
 	private AtomicInteger pagesCount;
-	private boolean stopExtracting;
-	AtomicInteger pagesInQueue;
+	private AtomicInteger numExtractedLinks;
+	ConcurrentHashMap<String,Boolean> isVisited;
 	RobotsChecker robotsChecker;
+	boolean stopExtracting;
 	ExecutorService es ;
 	
-	public CrawlerThread(LinkedBlockingQueue<String> linkedQueue,AtomicInteger pagesCount,
-			AtomicInteger pagesInQueue, RobotsChecker robotsChecker) {
+	public CrawlerThread(LinkedBlockingQueue<String> linkedQueue, ConcurrentHashMap<String,Boolean> isVisited, 
+			AtomicInteger numExtractedLinks, AtomicInteger pagesCount, RobotsChecker robotsChecker) {
 		this.linkedQueue = linkedQueue;
 		this.pagesCount = pagesCount;
+		this.numExtractedLinks = numExtractedLinks; 
+		this.isVisited = isVisited;
 		this.stopExtracting = false;
-		this.pagesInQueue = pagesInQueue;
 		this.robotsChecker = robotsChecker;
 		es = Executors.newCachedThreadPool();
 	}
@@ -43,7 +46,9 @@ public class CrawlerThread extends Thread {
 			if(this.pagesCount.get() >= Constants.MAX_CRAWLED_PAGES) break;
 			// check if blank URL 
 			if(url == null){
-				System.out.println("Leeeeeeeeeeeeeeeeh!");
+				continue;
+			} else if(!this.robotsChecker.isUrlAllowed(url)) {
+				ConnectToDB.deleteUrl(url);
 				continue;
 			}
 	
@@ -61,11 +66,12 @@ public class CrawlerThread extends Thread {
 						this.extractLinks(doc);
 					}
 					ConnectToDB.markUrlAsCrawled(url);
+					ConnectToDB.markAsVisited(url);
 				}
 			} catch (IOException e) {
-				//e.printStackTrace();
+				
 			} catch (NullPointerException e) {
-				//
+				
 			}
 		}
 		es.shutdown();
@@ -80,7 +86,7 @@ public class CrawlerThread extends Thread {
 		es.execute(new Runnable() { 
 			public void run() {
 				try {
-					BufferedWriter writer = new BufferedWriter(new FileWriter("pages/"+fileName+".html"));
+					BufferedWriter writer = new BufferedWriter(new FileWriter(Constants.CRAWLED_WEB_PAGES_FILE_PATH+fileName+".html"));
 					writer.write(doc.html());
 					writer.close();
 				} catch (IOException e) {
@@ -103,13 +109,12 @@ public class CrawlerThread extends Thread {
         for (Element link : links) {  
             String extractedUrl = link.attr("abs:href");
             extractedUrl = UrlNormalizer.getNormalizedURL(extractedUrl);
-            if(extractedUrl == null) continue;           
-            if(this.urlTest(extractedUrl)) {
-            	int curPagesCount = this.pagesInQueue.getAndIncrement();
-            	if(curPagesCount > Constants.MAX_CRAWLED_PAGES) {
-            		this.stopExtracting = true;
-            		break;
-            	}
+            if(extractedUrl == null) continue;  
+            if(this.checkifNotVisited(extractedUrl)) {
+            	if(this.numExtractedLinks.getAndIncrement() >= Constants.MAX_LINKS_TO_EXTRACT) {
+                	this.stopExtracting = true;
+                	break;
+                }
             	linkedQueue.offer(extractedUrl);
             }
             ConnectToDB.incUrlsPopularity(extractedUrl);
@@ -117,21 +122,22 @@ public class CrawlerThread extends Thread {
         
 	}
 	
-	
-	private boolean urlTest(String url) {
-		// check robots.txt...
-		if(!this.robotsChecker.isUrlAllowed(url)) {
-			return false;
-		}
-		// check if not visited before..
+	private boolean checkifNotVisited(String url) {
 		synchronized(this.robotsChecker) {
-			if(ConnectToDB.checkIfCrawledBefore(url)) {
+			if(this.isVisited.get(url) != null){
 				LogOutput.printMessage("URL Crawled Before : " + url);
 				return false;
+			}
+			else if(ConnectToDB.checkIfCrawledBefore(url)) {
+				LogOutput.printMessage("URL Crawled Before : " + url);
+				this.isVisited.put(url, true);
+				return false;
 			}  else {
+				this.isVisited.put(url, true);
 				ConnectToDB.insertUrlToBeCrawled(url);
+				return true;
 			}
 		}
-		return true;
 	}
+
 }
