@@ -83,10 +83,10 @@ public class WebCrawler {
 		int a= sc.nextInt();  
 		sc.close();
 		if(a != 1) {
-			ConnectToDB.clearDB();
+			ConnectToDB.dropCrawlerCollections();
 		}
 	
-		ConnectToDB.init();
+		ConnectToDB.createCrawlerCollections();
 	
 		WebCrawler crawler = new WebCrawler();
 		double startTime  = (double)System.nanoTime();

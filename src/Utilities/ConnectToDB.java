@@ -33,7 +33,7 @@ public class ConnectToDB {
 	    createCrawlerCollections();
 	}
 	
-	private static void createCrawlerCollections() {
+	public static void createCrawlerCollections() {
 		try {
 			database.createCollection("crawler_info");
 		} catch(MongoCommandException e) {
@@ -41,7 +41,7 @@ public class ConnectToDB {
 		}
 	}
 	
-	private static void dropCrawlerCollections() {
+	public static void dropCrawlerCollections() {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		collection.drop();
 	}
