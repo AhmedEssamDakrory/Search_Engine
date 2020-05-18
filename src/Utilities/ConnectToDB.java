@@ -21,11 +21,11 @@ public class ConnectToDB {
 	
 	public static void establishConnection(String dbName, String userName, String password) {
 		mongo = new MongoClient( "localhost" , 27017 );
-	    credential = MongoCredential.createCredential(userName, dbName,
-	       password.toCharArray());
+//	    credential = MongoCredential.createCredential(userName, dbName,
+//	       password.toCharArray());
 	    System.out.println("Connected to the database successfully");  
-	    database = mongo.getDatabase("myDb"); 
-	    System.out.println("Credentials ::"+ credential);
+	    database = mongo.getDatabase(dbName);
+//	    System.out.println("Credentials ::"+ credential);
 	}
 	
 	public static void init() {
