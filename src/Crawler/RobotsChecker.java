@@ -7,6 +7,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -38,7 +39,7 @@ public class RobotsChecker {
 		} catch (MalformedURLException e) {
 			return false;
 		}
-		
+
 		List<String> disallowedUrls = this.concMap.get(hostName).disallowedUrls;
 		for(String disallowdUrl : disallowedUrls) {
 			// match
@@ -126,6 +127,8 @@ public class RobotsChecker {
 	public String preparePattern(String p) {
 		p = p.replaceAll("\\?", "[?]"); // match "?" mark.
 		p = p.replaceAll("\\*", ".*"); // if "*" match any sequence of characters.
+		p = p.replaceAll("\\{", "%7B");
+		p = p.replaceAll("\\}", "%7D");
 		return p;
 	}
 	

@@ -23,7 +23,9 @@ public class UrlNormalizer {
 	public static String normalizePath(String path) {
 		return path.replaceAll("//", "/").replace("index.html", "")
 				.replace("index.htm", "")
-				.replace("index.php", "");
+				.replace("index.php", "")
+				.replaceAll("\\{", "%7B")
+				.replaceAll("\\}", "%7D");
 	}
 	
 	public static String getHostName(String host) {
@@ -48,11 +50,12 @@ public class UrlNormalizer {
     }
 	
 	public static String sortQueryParamerters(String query) {
-		if(query == null) return "";
+		if(query == null || query.equals("")) return "";
 		String[] parameters = query.split("&");
 		SortedMap<String, String> sortedPar = new TreeMap<String, String>(); 
 		for(String s : parameters) {
 			int idxSep = s.indexOf('=');
+			if(idxSep == -1) continue;
 			String par = s.substring(0, idxSep);
 			String val = s.substring(idxSep+1);
 			sortedPar.put(par, val);

@@ -1,97 +1,59 @@
 import com.mongodb.*;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.*;
-import org.jsoup.select.Elements;
+import java.util.ArrayList;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-
-public class Indexer implements Runnable{
+public class Indexer{
     public static MongoClient mongoClient = new MongoClient(new MongoClientURI(Constants.DATABASE_ADDRESS));
     public static MongoDatabase database = mongoClient.getDatabase(Constants.DATABASE_NAME);
     public static MongoCollection invertedIndexCollection = database.getCollection("invertedIndex");
-//    public static MongoCollection forwardIndexCollection = database.getCollection("forwardIndex");
+    public static MongoCollection crawlerInfoCollection = database.getCollection("crawler_info");
+    public static ArrayList<pathURL> crawledURLs = new ArrayList<pathURL>();
+    public static ArrayList<Thread> indexingThreads = new ArrayList<Thread>();
 
-    public static Stemmer s = new Stemmer();
+    public static class pathURL{
+        String path, url;
 
-    public static String readHtml(String path) {
-        String content = "";
-        try
-        {
-            content = new String ( Files.readAllBytes( Paths.get(path) ) );
+        public pathURL(String p, String u) {
+            path = p;
+            url = u;
         }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        return content;
     }
 
-    public static void processURL(String path, String url){
-        String html = readHtml(path);
-        org.jsoup.nodes.Document document = Jsoup.parse(html);
-        HashMap<String, Integer> wordScores = new HashMap<String, Integer>();
-
-        for (String tagName: Constants.SCORES.keySet()) {
-            Elements tagsText = document.getElementsByTag(tagName);
-            Integer score = Constants.SCORES.get(tagName);
-            for (Element tagText : tagsText) {
-                processElement(tagText, score, wordScores);
+    public static void runIndexer(int numThreads){
+        FindIterable<org.bson.Document> results = crawlerInfoCollection.find(Filters.eq("visited", true));
+        for (org.bson.Document doc: results){
+            String path = doc.getOrDefault("_id", null).toString();
+            String url = doc.getOrDefault("url", null).toString();
+            crawledURLs.add(new pathURL(path, url));
+        }
+        int segment = crawledURLs.size() / numThreads;
+        for (int i=0; i<numThreads-1; i++){
+            Thread t = new Thread(new IndexingThread(i * segment, (i+1) * segment));
+            t.start();
+            indexingThreads.add(t);
+        }
+        Thread last = new Thread(new IndexingThread((numThreads-1) * segment, -1));
+        last.start();
+        indexingThreads.add(last);
+        for (Thread t: indexingThreads){
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
-        pushToDatabase(url, wordScores);
-    }
-
-    public static void processElement(Element paragraph, Integer score, HashMap<String, Integer> wordScore){
-        String[] words = paragraph.text().toLowerCase().split("\\s");
-        for (String word: words){
-            if (word.charAt(word.length()-1) < 'a' || word.charAt(word.length()-1) > 'z'){
-                word = word.substring(0, word.length()-1);
-            }
-            s.add(word.toCharArray(), word.length());
-            s.stem();
-            String stemmedWord = s.toString();
-            if (stemmedWord.isEmpty() || Constants.STOP_WORDS.contains(stemmedWord)) continue;
-            Integer prevScore = 0;
-            prevScore = wordScore.getOrDefault(stemmedWord, 0);
-            wordScore.put(stemmedWord, prevScore + score);
-        }
-    }
-
-    public static void pushToDatabase(String url, HashMap<String, Integer> words){
-        for (String word: words.keySet()){
-            Integer score = words.get(word);
-            invertedIndexCollection.updateOne(Filters.eq("_id", word),
-
-                    new org.bson.Document("$addToSet", new org.bson.Document("urls",
-                            new org.bson.Document("url", url).append("score", score))),
-
-                    new UpdateOptions().upsert(true));
-        }
-    }
-
-    public static void removeSiteFromDatabase(String url){
-        invertedIndexCollection.updateMany(new org.bson.Document(),
-                Updates.pull("urls", new org.bson.Document("url", url)));
-        invertedIndexCollection.deleteMany(Filters.size("urls", 0));
-    }
-
-    public void run () {
-
     }
     public static void main(String[] args) {
-        String path = "data/Codeforces.html";
-        String url = "codeforces.com";
-//        processURL(path, url);
-//        removeSiteFromDatabase(url);
+        double startTime  = (double)System.nanoTime();
+        runIndexer(4);
+        double endTime  = (double)System.nanoTime();
+        double totalTime = (endTime - startTime)* (1e-9);
+        System.out.println("finished");
+        System.out.println(totalTime);
         mongoClient.close();
     }
 
