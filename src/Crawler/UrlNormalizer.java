@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -21,11 +22,15 @@ public class UrlNormalizer {
 	}
 	
 	public static String normalizePath(String path) {
-		return path.replaceAll("//", "/").replace("index.html", "")
+		String p = 	path.replaceAll("//", "/").replace("index.html", "")
 				.replace("index.htm", "")
 				.replace("index.php", "")
 				.replaceAll("\\{", "%7B")
 				.replaceAll("\\}", "%7D");
+		if(p.endsWith("/")) {
+			p = p.substring(0, p.length()-1);
+		}
+		return p;
 	}
 	
 	public static String getHostName(String host) {
@@ -68,5 +73,6 @@ public class UrlNormalizer {
 		}
 		return !sortedQuery.equals("") ? "?"+sortedQuery : "";
 	}
+
 
 }

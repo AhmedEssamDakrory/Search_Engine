@@ -13,7 +13,6 @@ import org.bson.Document;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCommandException;
-import com.mongodb.MongoCredential;
 
 public class ConnectToDB { 
 	private static MongoClient mongo;
@@ -112,6 +111,7 @@ public class ConnectToDB {
 			Document doc = new Document()
 					.append("url", url)
 					.append("crawled", false)
+					.append("visited", false)
 					.append("popularity", 0);
 			ld.add(doc);
 		}

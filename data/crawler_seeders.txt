@@ -1,8 +1,7 @@
-https://www.geeksforgeeks.or/
-https://www.wikipedia.org/
-https://www.hackerrank.com/
-https://www.google.com/
-https://leetcode.com/
-https://www.wikipedia.org/
-https://www.quora.com/
-https://stackoverflow.com/
+https://geeksforgeeks.or
+https://wikipedia.org
+https://hackerrank.com
+https://google.com
+https://leetcode.com
+https://quora.com
+https://stackoverflow.com
