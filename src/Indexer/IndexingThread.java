@@ -76,6 +76,7 @@ public class IndexingThread implements Runnable{
     }
 
     public static void pushToDatabase(String url, HashMap<String, Integer> words){
+        removeUrlFromDatabase(url);
         for (String word: words.keySet()){
             Integer score = words.get(word);
             Indexer.invertedIndexCollection.updateOne(Filters.eq("_id", word),
@@ -85,6 +86,8 @@ public class IndexingThread implements Runnable{
 
                     new UpdateOptions().upsert(true));
         }
+        Indexer.crawlerInfoCollection.updateOne(Filters.eq("url", url),
+                Updates.set("visited", false));
     }
     public static void removeUrlFromDatabase(String url){
         Indexer.invertedIndexCollection.updateMany(new org.bson.Document(),
