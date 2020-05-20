@@ -81,7 +81,7 @@ public class IndexingThread implements Runnable{
             Integer score = words.get(word);
             Indexer.invertedIndexCollection.updateOne(Filters.eq("_id", word),
 
-                    new org.bson.Document("$addToSet", new org.bson.Document("urls",
+                    new org.bson.Document("$push", new org.bson.Document("urls",
                             new org.bson.Document("url", url).append("score", score))),
 
                     new UpdateOptions().upsert(true));
