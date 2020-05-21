@@ -7,10 +7,6 @@ import com.mongodb.client.model.Filters;
 import java.util.ArrayList;
 
 public class Indexer{
-    public static MongoClient mongoClient = new MongoClient(new MongoClientURI(Constants.DATABASE_ADDRESS));
-    public static MongoDatabase database = mongoClient.getDatabase(Constants.DATABASE_NAME);
-    public static MongoCollection invertedIndexCollection = database.getCollection("invertedIndex");
-    public static MongoCollection crawlerInfoCollection = database.getCollection("crawler_info");
     public static ArrayList<pathURL> crawledURLs = new ArrayList<pathURL>();
     public static ArrayList<Thread> indexingThreads = new ArrayList<Thread>();
 
@@ -24,7 +20,7 @@ public class Indexer{
     }
 
     public static void runIndexer(int numThreads){
-        FindIterable<org.bson.Document> results = crawlerInfoCollection.find(Filters.eq("visited", true));
+        FindIterable<org.bson.Document> results = ConnectToDB.pullNotVisitedURLs();
         for (org.bson.Document doc: results){
             String path = doc.getOrDefault("_id", null).toString();
             String url = doc.getOrDefault("url", null).toString();
@@ -48,13 +44,14 @@ public class Indexer{
         }
     }
     public static void main(String[] args) {
+        ConnectToDB.establishConnection();
         double startTime  = (double)System.nanoTime();
-        runIndexer(4);
+        runIndexer(8);
         double endTime  = (double)System.nanoTime();
         double totalTime = (endTime - startTime)* (1e-9);
         System.out.println("finished");
         System.out.println(totalTime);
-        mongoClient.close();
+        ConnectToDB.closeConnection();
     }
 
 }

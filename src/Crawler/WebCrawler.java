@@ -75,7 +75,7 @@ public class WebCrawler {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 
-		ConnectToDB.establishConnection("search_engine", "team", "12345");
+		ConnectToDB.establishConnection();
 		
 		Scanner sc= new Scanner(System.in);
 		System.out.println("Enter 1 to recrawl from the existing urls in DB.........."); 

@@ -1,11 +1,14 @@
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,17 +19,17 @@ import com.mongodb.MongoCommandException;
 
 public class ConnectToDB { 
 	private static MongoClient mongo;
-//	private static MongoCredential credential;
 	private static MongoDatabase database;
-	
-	public static void establishConnection(String dbName, String userName, String password) {
-		mongo = new MongoClient( "localhost" , 27017 );
-//	    credential = MongoCredential.createCredential(userName, dbName,
-//	       password.toCharArray());
-	    System.out.println("Connected to the database successfully");  
-	    database = mongo.getDatabase(dbName);
-//	    System.out.println("Credentials ::"+ credential);
 
+	private static MongoCollection invertedIndexCollection;
+	private static MongoCollection crawlerInfoCollection;
+
+	public static void establishConnection() {
+		mongo = new MongoClient(new MongoClientURI(Constants.DATABASE_ADDRESS));
+	    System.out.println("Connected to the database successfully");  
+	    database = mongo.getDatabase(Constants.DATABASE_NAME);
+		invertedIndexCollection = database.getCollection("invertedIndex");
+		crawlerInfoCollection = database.getCollection("crawler_info");
 	}
 	
 	public static void init() {
@@ -121,13 +124,41 @@ public class ConnectToDB {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		collection.deleteOne(Filters.eq("url", url));
 	}
-	
+
+	//---------Indexer---------
+	public static void pushToDatabase(String url, HashMap<String, Integer> words){
+		removeUrlFromDatabase(url);
+		for (String word: words.keySet()){
+			Integer score = words.get(word);
+			invertedIndexCollection.updateOne(Filters.eq("_id", word),
+
+					new org.bson.Document("$push", new org.bson.Document("urls",
+							new org.bson.Document("url", url).append("score", score))),
+
+					new UpdateOptions().upsert(true));
+		}
+		crawlerInfoCollection.updateOne(Filters.eq("url", url),
+				Updates.set("visited", false));
+	}
+
+	public static void removeUrlFromDatabase(String url){
+		invertedIndexCollection.updateMany(new org.bson.Document(),
+				Updates.pull("urls", new org.bson.Document("url", url)));
+		invertedIndexCollection.deleteMany(Filters.size("urls", 0));
+	}
+
+	public static FindIterable pullNotVisitedURLs(){
+		return crawlerInfoCollection.find(Filters.eq("visited", true));
+	}
 	public static void clearDB() {
 		//***************** drop all collections**********************
 		dropCrawlerCollections();
-		
+		invertedIndexCollection.drop();
 	}
-	
+
+	public static void closeConnection(){
+		mongo.close();
+	}
 	public static void main(String[] args) throws IOException, InterruptedException {
 //		ConnectToDB.establishConnection("search_engine", "team", "1234");
 //		ConnectToDB.clearDB();

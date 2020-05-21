@@ -1,6 +1,3 @@
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -52,7 +49,7 @@ public class IndexingThread implements Runnable{
                 processElement(tagText, score, wordScores);
             }
         }
-        pushToDatabase(url, wordScores);
+        ConnectToDB.pushToDatabase(url, wordScores);
     }
 
     public static void processElement(Element paragraph, Integer score, HashMap<String, Integer> wordScore){
@@ -73,25 +70,5 @@ public class IndexingThread implements Runnable{
             prevScore = wordScore.getOrDefault(stemmedWord, 0);
             wordScore.put(stemmedWord, prevScore + score);
         }
-    }
-
-    public static void pushToDatabase(String url, HashMap<String, Integer> words){
-        removeUrlFromDatabase(url);
-        for (String word: words.keySet()){
-            Integer score = words.get(word);
-            Indexer.invertedIndexCollection.updateOne(Filters.eq("_id", word),
-
-                    new org.bson.Document("$push", new org.bson.Document("urls",
-                            new org.bson.Document("url", url).append("score", score))),
-
-                    new UpdateOptions().upsert(true));
-        }
-        Indexer.crawlerInfoCollection.updateOne(Filters.eq("url", url),
-                Updates.set("visited", false));
-    }
-    public static void removeUrlFromDatabase(String url){
-        Indexer.invertedIndexCollection.updateMany(new org.bson.Document(),
-                Updates.pull("urls", new org.bson.Document("url", url)));
-        Indexer.invertedIndexCollection.deleteMany(Filters.size("urls", 0));
     }
 }
