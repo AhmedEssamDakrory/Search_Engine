@@ -47,9 +47,8 @@ public class QueryProcessor {
     private void initStopWords() {
         stopWords = new HashSet<>();
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("stop_words.txt"));
+            BufferedReader reader = new BufferedReader(new FileReader("data/stop_words.txt"));
             String line;
-            int i = 0;
             while ((line = reader.readLine()) != null) {
                 stopWords.add(line);
             }
