@@ -1,4 +1,4 @@
-
+package main.ranker;
 
 public class PageRank {
     protected int m;

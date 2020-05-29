@@ -1,7 +1,11 @@
+package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
 import org.bson.Document;
+
 import java.util.*;
+
+import main.utilities.ConnectToDB;
 
 public class Ranker {
 
