@@ -2,5 +2,6 @@
 out/
 data/pages/
 crawlingLogFile
+crawlingLogFile.lck
 *.iml
 *.class

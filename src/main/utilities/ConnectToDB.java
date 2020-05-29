@@ -187,7 +187,8 @@ public class ConnectToDB {
 		Bson unwind2 = unwind("$crawled_info");
 		Bson project2 = project(Projections.fields(Projections.excludeId(),
 				Projections.include("url", "score"),
-				Projections.computed("popularity", "$crawled_info.popularity")));
+				Projections.computed("popularity", "$crawled_info.popularity"),
+				Projections.computed("id", "$crawled_info._id")));
 
 		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2);
 		return invertedIndexCollection.aggregate(pipeline);

@@ -1,7 +1,5 @@
 package main.indexer;
 
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
-import opennlp.tools.parser.Cons;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;

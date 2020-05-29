@@ -40,7 +40,6 @@ public class Constants {
 			//		description
 			//		keywords
 //			put("meta", 5);	// attribute content
-			//	add author?
 
 			//	 only when property is one of:
 			//		og:title
