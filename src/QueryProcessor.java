@@ -1,7 +1,6 @@
 import opennlp.tools.stemmer.PorterStemmer;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,18 +12,18 @@ public class QueryProcessor {
 
     private Set<String> stopWords;
     private PorterStemmer stemmer;
+    private static QueryProcessor instance;
 
-    public QueryProcessor() {
+    private QueryProcessor() {
         initStopWords();
         stemmer = new PorterStemmer();
     }
 
-    public static void main(String[] args) {
-        System.out.println(new File(".").getAbsolutePath());
-        QueryProcessor queryProcessor = new QueryProcessor();
-        List<String> words = queryProcessor.process("I like watching very popular movies");
-        for (String word : words)
-            System.out.println(word);
+    public static QueryProcessor getInstance() {
+        if (instance != null)
+            return instance;
+        instance = new QueryProcessor();
+        return instance;
     }
 
     public String stem(String word) {
