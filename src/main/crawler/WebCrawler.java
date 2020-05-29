@@ -1,3 +1,8 @@
+package main.crawler;
+
+import main.utilities.ConnectToDB;
+import main.utilities.Constants;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,7 +37,7 @@ public class WebCrawler {
 		List<String> seeders = ConnectToDB.getAllNotCrawledUrls();
 		if(seeders.size() == 0) {
 			System.out.println("Crawling for the first time...");
-			File file = new File(Constants.CRAWLING_SEEDER_FILE);   
+			File file = new File(Constants.CRAWLING_SEEDER_FILE);
 			BufferedReader br = new BufferedReader(new FileReader(file)); 
 			String st; 
 			while ((st = br.readLine()) != null) {

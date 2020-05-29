@@ -1,3 +1,5 @@
+package main.crawler;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,6 +11,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;  
 import org.jsoup.nodes.Element;  
 import org.jsoup.select.Elements;
+import main.utilities.ConnectToDB;
+import main.utilities.Constants;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;

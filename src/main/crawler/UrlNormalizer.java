@@ -1,4 +1,5 @@
-import java.io.IOException;
+package main.crawler;
+
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;

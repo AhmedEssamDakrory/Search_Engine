@@ -1,11 +1,18 @@
+package main.indexer;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import main.utilities.ConnectToDB;
+import main.utilities.Constants;
+import main.utilities.QueryProcessor;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
+
 
 public class IndexingThread implements Runnable{
     int start, end;
@@ -21,8 +28,6 @@ public class IndexingThread implements Runnable{
             processURL(Indexer.crawledURLs.get(i).path, Indexer.crawledURLs.get(i).url);
         }
     }
-
-    public static Stemmer s = new Stemmer();
 
     public static String readHtml(String path) {
         String content = "";
@@ -49,26 +54,20 @@ public class IndexingThread implements Runnable{
                 processElement(tagText, score, wordScores);
             }
         }
-        ConnectToDB.pushToDatabase(url, wordScores);
+        Integer totalScore = 0;
+        for (Integer score: wordScores.values()){
+            totalScore += score;
+        }
+        ConnectToDB.pushToDatabase(url, wordScores, totalScore);
     }
 
     public static void processElement(Element paragraph, Integer score, HashMap<String, Integer> wordScore){
-        String[] words = paragraph.text().toLowerCase().split("\\s");
+        QueryProcessor q = QueryProcessor.getInstance();
+        List<String> words = q.process(paragraph.text());
         for (String word: words){
-            try {
-                if (word.charAt(word.length() - 1) < 'a' || word.charAt(word.length() - 1) > 'z') {
-                    word = word.substring(0, word.length() - 1);
-                }
-                s.add(word.toCharArray(), word.length());
-                s.stem();
-            } catch (ArrayIndexOutOfBoundsException | StringIndexOutOfBoundsException e){
-                continue;
-            }
-            String stemmedWord = s.toString();
-            if (stemmedWord.isEmpty() || Constants.STOP_WORDS.contains(stemmedWord)) continue;
             Integer prevScore = 0;
-            prevScore = wordScore.getOrDefault(stemmedWord, 0);
-            wordScore.put(stemmedWord, prevScore + score);
+            prevScore = wordScore.getOrDefault(word, 0);
+            wordScore.put(word, prevScore + score);
         }
     }
 }

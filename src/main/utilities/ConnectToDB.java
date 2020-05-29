@@ -1,3 +1,5 @@
+package main.utilities;
+
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
@@ -128,10 +130,10 @@ public class ConnectToDB {
 	}
 
 	//---------Indexer---------
-	public static void pushToDatabase(String url, HashMap<String, Integer> words){
+	public static void pushToDatabase(String url, HashMap<String, Integer> words, Integer totalScore){
 		removeUrlFromDatabase(url);
 		for (String word: words.keySet()){
-			Integer score = words.get(word);
+			float score = (float)words.get(word) / totalScore;
 			invertedIndexCollection.updateOne(Filters.eq("_id", word),
 
 					new org.bson.Document("$push", new org.bson.Document("urls",

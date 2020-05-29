@@ -1,8 +1,7 @@
-import com.mongodb.*;
+package main.indexer;
+
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
+import main.utilities.ConnectToDB;
 
 import java.util.ArrayList;
 
