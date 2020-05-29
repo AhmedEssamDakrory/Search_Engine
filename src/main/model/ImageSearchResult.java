@@ -22,13 +22,6 @@ public class ImageSearchResult extends SearchResult {
         return url;
     }
 
-    public String getBaseUrl() {
-        String[] split = url.split("/");
-        if (split.length >= 3)
-            return split[2];
-        return url;
-    }
-
     public String getTitle() {
         return title;
     }
