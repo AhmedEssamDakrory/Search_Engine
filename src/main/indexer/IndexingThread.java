@@ -1,5 +1,7 @@
 package main.indexer;
 
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
+import opennlp.tools.parser.Cons;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -10,8 +12,7 @@ import main.utilities.QueryProcessor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 
 public class IndexingThread implements Runnable{
@@ -59,15 +60,71 @@ public class IndexingThread implements Runnable{
             totalScore += score;
         }
         ConnectToDB.pushToDatabase(url, wordScores, totalScore);
+
+        //---------Process Images----------
+        List<Map.Entry<String, Integer> > wordsSorted =
+                new LinkedList<Map.Entry<String, Integer> >(wordScores.entrySet());
+
+        // Sort the list
+        Collections.sort(wordsSorted, new Comparator<Map.Entry<String, Integer> >() {
+            public int compare(Map.Entry<String, Integer> o1,
+                               Map.Entry<String, Integer> o2)
+            {
+                return -(o1.getValue()).compareTo(o2.getValue());
+            }
+        });
+
+        Elements images = document.getElementsByTag("img");
+        for (Element image: images){
+            HashMap<String, Integer> captionScore = new HashMap<String, Integer>();
+            String src = image.attr("src");
+            Integer captionTotalScore = processImage(image, captionScore);
+            int num = 0;
+            for (Map.Entry<String, Integer> word: wordsSorted){
+                Integer prevScore = captionScore.getOrDefault(word, 0);
+                captionScore.put(word.getKey(), prevScore + word.getValue());
+                captionTotalScore += word.getValue();
+                if (num++ == Constants.EXTRA_IMAGE_WORDS) break;
+            }
+            ConnectToDB.pushImageToDatabase(src, captionScore, captionTotalScore);
+        }
+
     }
 
     public static void processElement(Element paragraph, Integer score, HashMap<String, Integer> wordScore){
         QueryProcessor q = QueryProcessor.getInstance();
         List<String> words = q.process(paragraph.text());
         for (String word: words){
-            Integer prevScore = 0;
-            prevScore = wordScore.getOrDefault(word, 0);
+            Integer prevScore = wordScore.getOrDefault(word, 0);
             wordScore.put(word, prevScore + score);
+        }
+    }
+
+    public static Integer processImage(Element image, HashMap<String, Integer> imageScore) {
+        QueryProcessor q = QueryProcessor.getInstance();
+        List<String> words = q.process(image.attr("alt"));
+        for (String word : words) {
+            Integer prevScore = imageScore.getOrDefault(word, 0);
+            imageScore.put(word, prevScore + Constants.CAPTION_SCORE);
+        }
+        return words.size() * Constants.CAPTION_SCORE;
+    }
+
+    public static void main(String[] args) {
+        List<Map.Entry<String, Integer> > wordsSorted =
+                new LinkedList<Map.Entry<String, Integer> >(Constants.SCORES.entrySet());
+
+        // Sort the list
+        Collections.sort(wordsSorted, new Comparator<Map.Entry<String, Integer> >() {
+            public int compare(Map.Entry<String, Integer> o1,
+                               Map.Entry<String, Integer> o2)
+            {
+                return -(o1.getValue()).compareTo(o2.getValue());
+            }
+        });
+
+        for (Map.Entry<String, Integer> word: wordsSorted){
+            System.out.println(word.getKey() + " " + word.getValue());
         }
     }
 }

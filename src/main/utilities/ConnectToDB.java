@@ -25,6 +25,7 @@ public class ConnectToDB {
 	private static MongoClient mongo;
 	private static MongoDatabase database;
 
+	private static MongoCollection imagesIndexCollection;
 	private static MongoCollection invertedIndexCollection;
 	private static MongoCollection crawlerInfoCollection;
 
@@ -32,6 +33,7 @@ public class ConnectToDB {
 		mongo = new MongoClient(new MongoClientURI(Constants.DATABASE_ADDRESS));
 	    System.out.println("Connected to the database successfully");  
 	    database = mongo.getDatabase(Constants.DATABASE_NAME);
+		imagesIndexCollection = database.getCollection("imagesIndex");
 		invertedIndexCollection = database.getCollection("invertedIndex");
 		crawlerInfoCollection = database.getCollection("crawler_info");
 	}
@@ -151,6 +153,25 @@ public class ConnectToDB {
 		invertedIndexCollection.deleteMany(Filters.size("urls", 0));
 	}
 
+	public static void pushImageToDatabase(String src, HashMap<String, Integer> words, Integer totalScore){
+		removeImageFromDatabase(src);
+		for (String word: words.keySet()){
+			float score = (float)words.get(word) / totalScore;
+			imagesIndexCollection.updateOne(Filters.eq("_id", word),
+
+					new org.bson.Document("$push", new org.bson.Document("images",
+							new org.bson.Document("image", src).append("score", score))),
+
+					new UpdateOptions().upsert(true));
+		}
+	}
+
+	public static void removeImageFromDatabase(String src){
+		imagesIndexCollection.updateMany(new org.bson.Document(),
+				Updates.pull("images", new org.bson.Document("image", src)));
+		imagesIndexCollection.deleteMany(Filters.size("images", 0));
+	}
+
 	public static FindIterable pullNotVisitedURLs(){
 		return crawlerInfoCollection.find(Filters.eq("visited", true));
 	}
@@ -176,6 +197,7 @@ public class ConnectToDB {
 		//***************** drop all collections**********************
 		dropCrawlerCollections();
 		invertedIndexCollection.drop();
+		imagesIndexCollection.drop();
 	}
 
 	public static void closeConnection(){

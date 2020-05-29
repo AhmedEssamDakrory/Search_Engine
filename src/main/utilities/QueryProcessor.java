@@ -40,7 +40,11 @@ public class QueryProcessor {
         for (String word : words) {
             if (word.trim().isEmpty() || stopWords.contains(word))
                 continue;
-            processedQuery.add(stem(word));
+            try {
+                processedQuery.add(stem(word));
+            } catch (java.lang.ArrayIndexOutOfBoundsException e){
+                continue;
+            }
         }
         return processedQuery;
     }

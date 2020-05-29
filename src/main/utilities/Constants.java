@@ -14,6 +14,8 @@ public class Constants {
 	//---------Indexer---------
 	public static final String DATABASE_ADDRESS = "mongodb://localhost:27017";
 	public static final String DATABASE_NAME = "search_engine";
+	public static final Integer EXTRA_IMAGE_WORDS = 10;
+	public static final Integer CAPTION_SCORE = 2;
 	public static final HashMap<String, Integer> SCORES = new HashMap<String, Integer>(){
 		{
 			put("title", 20);
@@ -32,12 +34,12 @@ public class Constants {
 
 			put("a", 2);
 
-			put("img", 2);	// attribute alt
+//			put("img", 2);	// attribute alt
 
 			// only when name is one of:
 			//		description
 			//		keywords
-			put("meta", 5);	// attribute content
+//			put("meta", 5);	// attribute content
 			//	add author?
 
 			//	 only when property is one of:
