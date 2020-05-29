@@ -17,9 +17,34 @@ public class Constants {
 	public static final HashMap<String, Integer> SCORES = new HashMap<String, Integer>(){
 		{
 			put("title", 20);
-			put("h1", 4);
-			put("h2", 2);
+			put("h1", 10);
+			put("h2", 8);
+			put("h3", 6);
+			put("h4", 4);
+			put("h5", 3);
+			put("h6", 2);
 			put("p", 1);
+			put("strong", 2);
+			put("em", 2);
+			put("b", 1);
+			put("i", 1);
+			put("u", 1);
+
+			put("a", 2);
+
+			put("img", 2);	// attribute alt
+
+			// only when name is one of:
+			//		description
+			//		keywords
+			put("meta", 5);	// attribute content
+			//	add author?
+
+			//	 only when property is one of:
+			//		og:title
+			//		og:description
+			//		og:img:alt
+			//		...??
 		}
 	};
 	public static final Set<String> STOP_WORDS = new HashSet<String>(){

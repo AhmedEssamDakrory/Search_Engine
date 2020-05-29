@@ -1,21 +1,23 @@
 import com.mongodb.MongoClientURI;
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.bson.Document;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCommandException;
+import org.bson.conversions.Bson;
+
+import static com.mongodb.client.model.Aggregates.*;
 
 public class ConnectToDB { 
 	private static MongoClient mongo;
@@ -150,6 +152,24 @@ public class ConnectToDB {
 	public static FindIterable pullNotVisitedURLs(){
 		return crawlerInfoCollection.find(Filters.eq("visited", true));
 	}
+
+	// Ranker
+	public static AggregateIterable<Document> findMatches(String word)
+	{
+		Bson match = match(Filters.eq("_id", word));
+		Bson unwind1 = unwind("$urls");
+		Bson project1 = project(Projections.fields(Projections.computed("url", "$urls.url"),
+				Projections.computed("score", "$urls.score")));
+		Bson lookup = lookup("crawler_info", "url", "url", "crawled_info");
+		Bson unwind2 = unwind("$crawled_info");
+		Bson project2 = project(Projections.fields(Projections.excludeId(),
+				Projections.include("url", "score"),
+				Projections.computed("popularity", "$crawled_info.popularity")));
+
+		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2);
+		return invertedIndexCollection.aggregate(pipeline);
+	}
+
 	public static void clearDB() {
 		//***************** drop all collections**********************
 		dropCrawlerCollections();
