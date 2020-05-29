@@ -54,7 +54,11 @@ public class IndexingThread implements Runnable{
                 processElement(tagText, score, wordScores);
             }
         }
-        ConnectToDB.pushToDatabase(url, wordScores);
+        Integer totalScore = 0;
+        for (Integer score: wordScores.values()){
+            totalScore += score;
+        }
+        ConnectToDB.pushToDatabase(url, wordScores, totalScore);
     }
 
     public static void processElement(Element paragraph, Integer score, HashMap<String, Integer> wordScore){
