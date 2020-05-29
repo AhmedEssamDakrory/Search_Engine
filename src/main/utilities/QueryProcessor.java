@@ -1,3 +1,5 @@
+package main.utilities;
+
 import opennlp.tools.stemmer.PorterStemmer;
 
 import java.io.BufferedReader;
@@ -46,7 +48,7 @@ public class QueryProcessor {
     private void initStopWords() {
         stopWords = new HashSet<>();
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("data/stop_words.txt"));
+            BufferedReader reader = new BufferedReader(new FileReader(Constants.STOP_WORDS_PATH));
             String line;
             while ((line = reader.readLine()) != null) {
                 stopWords.add(line);
