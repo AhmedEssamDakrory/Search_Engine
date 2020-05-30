@@ -1,6 +1,8 @@
 package main.utilities;
 
+import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoCommandException;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -9,15 +11,11 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.io.IOException;
 import java.util.*;
-
-import org.bson.Document;
-
-import com.mongodb.MongoClient;
-import com.mongodb.MongoCommandException;
-import org.bson.conversions.Bson;
 
 import static com.mongodb.client.model.Aggregates.*;
 
@@ -70,9 +68,8 @@ public class ConnectToDB {
 	public static boolean checkIfCrawledBefore(String url) {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		Document doc = collection.find(Filters.eq("url", url)).first();
-		if(doc == null) return false;
-		return true;
-	}
+        return doc != null;
+    }
 	
 	public static void markAsVisited(String url) {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
@@ -110,7 +107,7 @@ public class ConnectToDB {
 		List<String> urls = new ArrayList<String>();
 		Iterator<Document> it = iterDoc.iterator();
 		while (it.hasNext()) {
-			urls.add(((Document)it.next()).getString("url"));
+            urls.add(it.next().getString("url"));
 		}
 		return urls;
 	}
@@ -184,7 +181,7 @@ public class ConnectToDB {
 	}
 
 	// Ranker
-	public static AggregateIterable<Document> findTextMatches(String word)
+    public static AggregateIterable findTextMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$urls");
@@ -202,7 +199,7 @@ public class ConnectToDB {
 		return invertedIndexCollection.aggregate(pipeline);
 	}
 
-	public static AggregateIterable<Document> findImageMatches(String word)
+    public static AggregateIterable findImageMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$images");
