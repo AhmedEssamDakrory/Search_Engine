@@ -18,7 +18,8 @@ public class Ranker {
         return (Double.parseDouble(score) * Integer.parseInt(popularity));
     }
 
-    // TODO: allow for extra metrics in the scoring (TF-IDF, country, etc.)
+    // TODO: calculate IDF = log(total no of docs / (1 + docs containing word)
+    // TODO: allow for extra metrics in the scoring (country, personality, etc.)
     public static List<TextSearchResult> rankText(List<String> searchWords, int pageNum, int resultsPerPage)
     {
         HashMap<String, Double> urlScore = new HashMap<>();
@@ -53,7 +54,7 @@ public class Ranker {
             Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
             String url = doc.get("url").toString();
             String icon = "Icon";
-            String title = "Title";
+            String title = doc.get("title").toString();
             String description = "Description";
             Double score = urlScore.get(url);
             TextSearchResult tmp = new TextSearchResult(id, url, icon, title, description, score);
@@ -102,7 +103,7 @@ public class Ranker {
             Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
             String pageUrl = doc.get("url").toString();
             String image = doc.get("image").toString();
-            String title = "Title";
+            String title = doc.get("title").toString();
             Double score = imgScore.get(image);
             ImageSearchResult tmp = new ImageSearchResult(id, image, pageUrl, title, score);
             orderedResults.add(tmp);
@@ -119,11 +120,13 @@ public class Ranker {
     public static void main(String[] args)
     {
         ConnectToDB.establishConnection();
-        List<String> tests = Arrays.asList("comput", "scienc");
+        List<String> tests = Arrays.asList("academia");
 
-        List<TextSearchResult> results = rankText(tests, 1, 10);
+        List<TextSearchResult> text = rankText(tests, 1, 10);
+        List<ImageSearchResult> images = rankImages(tests, 1, 10);
 
-        for(TextSearchResult res : results)
+        System.out.println("Text:");
+        for(TextSearchResult res : text)
         {
             String url = res.getUrl();
             Integer id = res.getID();
@@ -131,6 +134,16 @@ public class Ranker {
             String title = res.getTitle();
             String description = res.getDescription();
             System.out.println(id + " " + url + " " + icon + " " + title + " " + description);
+        }
+
+        System.out.println("\nImages:");
+        for(ImageSearchResult res : images)
+        {
+            String image = res.getUrl();
+            String url = res.getUrl();
+            Integer id = res.getID();
+            String title = res.getTitle();
+            System.out.println(id + " " + url + " " + image + " " + title);
         }
     }
 }

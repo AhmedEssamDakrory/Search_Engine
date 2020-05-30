@@ -24,6 +24,8 @@ public class ImageSearchResult extends SearchResult {
         return url;
     }
 
+    public String getPageUrl() { return pageUrl; }
+
     public String getTitle() {
         return title;
     }

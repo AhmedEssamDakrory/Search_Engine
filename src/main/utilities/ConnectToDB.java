@@ -181,7 +181,7 @@ public class ConnectToDB {
 	}
 
 	// Ranker
-    public static AggregateIterable findTextMatches(String word)
+	public static AggregateIterable findTextMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$urls");
@@ -195,13 +195,19 @@ public class ConnectToDB {
 				Projections.include("url", "score"),
 				Projections.computed("popularity", "$crawled_info.popularity"),
 				Projections.computed("id", "$crawled_info._id")));
-		// TODO: icon, title, description
+		Bson lookup2 = lookup("forwardIndex", "url", "_id", "title_url");
+		Bson unwind3 = unwind("$title_url");
+		Bson project3 = project(Projections.fields(
+				Projections.include("id", "url", "score", "popularity"),
+				Projections.computed("title", "$title_url.title")
+		));
+		// TODO: icon, description
 
-		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2);
+		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
 		return invertedIndexCollection.aggregate(pipeline);
 	}
 
-    public static AggregateIterable findImageMatches(String word)
+	public static AggregateIterable findImageMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$images");
@@ -218,9 +224,14 @@ public class ConnectToDB {
 				Projections.computed("popularity", "$crawled_info.popularity"),
 				Projections.computed("id", "$crawled_info._id")
 		));
-		// TODO: title
+		Bson lookup2 = lookup("forwardIndex", "url", "_id", "title_url");
+		Bson unwind3 = unwind("$title_url");
+		Bson project3 = project(Projections.fields(
+				Projections.include("id", "url", "image", "score", "popularity"),
+				Projections.computed("title", "$title_url.title")
+		));
 
-		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2);
+		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
 		return imagesIndexCollection.aggregate(pipeline);
 	}
 
