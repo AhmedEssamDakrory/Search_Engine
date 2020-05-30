@@ -171,9 +171,6 @@ public class ConnectToDB {
 
 					new UpdateOptions().upsert(true));
 		}
-		forwardIndexCollection.updateOne(Filters.eq("_id", src),
-				Updates.set("title", title),
-				new UpdateOptions().upsert(true));
 	}
 
 	public static void removeImageFromDatabase(String src){
