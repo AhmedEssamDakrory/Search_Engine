@@ -46,6 +46,7 @@ public class IndexingThread implements Runnable{
         org.jsoup.nodes.Document document = Jsoup.parse(html);
         HashMap<String, Integer> wordScores = new HashMap<String, Integer>();
 
+        String title = document.title();
         for (String tagName: Constants.SCORES.keySet()) {
             Elements tagsText = document.getElementsByTag(tagName);
             Integer score = Constants.SCORES.get(tagName);
@@ -57,7 +58,7 @@ public class IndexingThread implements Runnable{
         for (Integer score: wordScores.values()){
             totalScore += score;
         }
-        ConnectToDB.pushToDatabase(url, wordScores, totalScore);
+        ConnectToDB.pushToDatabase(url, title, wordScores, totalScore);
 
         //---------Process Images----------
         List<Map.Entry<String, Integer> > wordsSorted =
@@ -84,7 +85,7 @@ public class IndexingThread implements Runnable{
                 captionTotalScore += word.getValue();
                 if (num++ == Constants.EXTRA_IMAGE_WORDS) break;
             }
-            ConnectToDB.pushImageToDatabase(src, captionScore, captionTotalScore);
+            ConnectToDB.pushImageToDatabase(url, src, title, captionScore, captionTotalScore);
         }
 
     }

@@ -27,6 +27,7 @@ public class ConnectToDB {
 
 	private static MongoCollection imagesIndexCollection;
 	private static MongoCollection invertedIndexCollection;
+	private static MongoCollection forwardIndexCollection;
 	private static MongoCollection crawlerInfoCollection;
 
 	public static void establishConnection() {
@@ -35,6 +36,7 @@ public class ConnectToDB {
 	    database = mongo.getDatabase(Constants.DATABASE_NAME);
 		imagesIndexCollection = database.getCollection("imagesIndex");
 		invertedIndexCollection = database.getCollection("invertedIndex");
+		forwardIndexCollection = database.getCollection("forwardIndex");
 		crawlerInfoCollection = database.getCollection("crawler_info");
 	}
 	
@@ -132,7 +134,7 @@ public class ConnectToDB {
 	}
 
 	//---------Indexer---------
-	public static void pushToDatabase(String url, HashMap<String, Integer> words, Integer totalScore){
+	public static void pushToDatabase(String url, String title, HashMap<String, Integer> words, Integer totalScore){
 		removeUrlFromDatabase(url);
 		for (String word: words.keySet()){
 			float score = (float)words.get(word) / totalScore;
@@ -143,6 +145,11 @@ public class ConnectToDB {
 
 					new UpdateOptions().upsert(true));
 		}
+
+		forwardIndexCollection.updateOne(Filters.eq("_id", url),
+				Updates.set("title", title),
+				new UpdateOptions().upsert(true));
+
 		crawlerInfoCollection.updateOne(Filters.eq("url", url),
 				Updates.set("visited", false));
 	}
@@ -153,17 +160,20 @@ public class ConnectToDB {
 		invertedIndexCollection.deleteMany(Filters.size("urls", 0));
 	}
 
-	public static void pushImageToDatabase(String src, HashMap<String, Integer> words, Integer totalScore){
+	public static void pushImageToDatabase(String url, String src, String title, HashMap<String, Integer> words, Integer totalScore){
 		removeImageFromDatabase(src);
 		for (String word: words.keySet()){
 			float score = (float)words.get(word) / totalScore;
 			imagesIndexCollection.updateOne(Filters.eq("_id", word),
 
 					new org.bson.Document("$push", new org.bson.Document("images",
-							new org.bson.Document("image", src).append("score", score))),
+							new org.bson.Document("url", url).append("image", src).append("score", score))),
 
 					new UpdateOptions().upsert(true));
 		}
+		forwardIndexCollection.updateOne(Filters.eq("_id", src),
+				Updates.set("title", title),
+				new UpdateOptions().upsert(true));
 	}
 
 	public static void removeImageFromDatabase(String src){
