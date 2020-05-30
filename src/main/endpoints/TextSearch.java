@@ -16,7 +16,7 @@ public class TextSearch extends HttpServlet {
         int page_number = Integer.parseInt(req.getParameter("page_number"));
         int per_page = Integer.parseInt(req.getParameter("per_page"));
         QueryProcessor queryProcessor = QueryProcessor.getInstance();
-        String message = new Gson().toJson(Ranker.rank(queryProcessor.process(query), page_number, per_page));
+        String message = new Gson().toJson(Ranker.rankText(queryProcessor.process(query), page_number, per_page));
         resp.setContentType("application/json");
         resp.getWriter().println(message);
     }

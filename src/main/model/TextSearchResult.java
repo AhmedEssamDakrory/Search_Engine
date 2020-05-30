@@ -7,7 +7,7 @@ public class TextSearchResult extends SearchResult {
     private String title;
     private String description;
 
-    public TextSearchResult(Integer id, String url, String iconUrl, String title, String description, Integer score) {
+    public TextSearchResult(Integer id, String url, String iconUrl, String title, String description, Double score) {
         super(score);
         this.id = id;
         this.url = url;
