@@ -1,9 +1,9 @@
 package main.model;
 
 public abstract class SearchResult {
-    private transient Integer score;
+    private transient Double score;
 
-    public SearchResult(Integer score) {
+    public SearchResult(Double score) {
         this.score = score;
     }
 
@@ -11,7 +11,7 @@ public abstract class SearchResult {
 
     public abstract Integer getID();
 
-    public Integer getScore()
+    public Double getScore()
     {
         return score;
     }

@@ -177,7 +177,7 @@ public class ConnectToDB {
 	}
 
 	// Ranker
-	public static AggregateIterable<Document> findMatches(String word)
+	public static AggregateIterable<Document> findTextMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$urls");
@@ -189,9 +189,28 @@ public class ConnectToDB {
 				Projections.include("url", "score"),
 				Projections.computed("popularity", "$crawled_info.popularity"),
 				Projections.computed("id", "$crawled_info._id")));
+				// TODO: icon, title, description
 
 		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2);
 		return invertedIndexCollection.aggregate(pipeline);
+	}
+
+	public static AggregateIterable<Document> findImageMatches(String word)
+	{
+		Bson match = match(Filters.eq("_id", word));
+		Bson unwind1 = unwind("$images");
+		Bson project1 = project(Projections.fields(Projections.computed("url", "$images.image"),
+				Projections.computed("score", "$images.score")));
+		Bson lookup = lookup("crawler_info", "url", "url", "crawled_info");
+		Bson unwind2 = unwind("$crawled_info");
+		Bson project2 = project(Projections.fields(Projections.excludeId(),
+				Projections.include("url", "score"),
+				Projections.computed("popularity", "$crawled_info.popularity"),
+				Projections.computed("id", "$crawled_info._id")));
+				// TODO: title
+
+		List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2);
+		return imagesIndexCollection.aggregate(pipeline);
 	}
 
 	public static void clearDB() {

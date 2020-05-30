@@ -5,7 +5,7 @@ public class ImageSearchResult extends SearchResult {
     private String url;
     private String title;
 
-    public ImageSearchResult(Integer id, String url, String title, Integer score) {
+    public ImageSearchResult(Integer id, String url, String title, Double score) {
         super(score);
         this.id = id;
         this.url = url;
