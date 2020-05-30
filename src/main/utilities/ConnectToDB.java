@@ -29,6 +29,10 @@ public class ConnectToDB {
 	private static MongoCollection crawlerInfoCollection;
 
 	public static void establishConnection() {
+		if (mongo != null) {
+			System.out.println("Already connected to database");
+			return;
+		}
 		mongo = new MongoClient(new MongoClientURI(Constants.DATABASE_ADDRESS));
 	    System.out.println("Connected to the database successfully");
 	    database = mongo.getDatabase(Constants.DATABASE_NAME);
