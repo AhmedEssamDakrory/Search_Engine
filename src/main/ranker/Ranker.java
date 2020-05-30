@@ -1,12 +1,13 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
+import main.model.ImageSearchResult;
+import main.model.SearchResult;
+import main.model.TextSearchResult;
+import main.utilities.ConnectToDB;
 import org.bson.Document;
 
 import java.util.*;
-
-import main.model.*;
-import main.utilities.ConnectToDB;
 
 public class Ranker {
 
@@ -139,7 +140,7 @@ public class Ranker {
         System.out.println("\nImages:");
         for(ImageSearchResult res : images)
         {
-            String image = res.getUrl();
+            String image = res.getImageUrl();
             String url = res.getUrl();
             Integer id = res.getID();
             String title = res.getTitle();

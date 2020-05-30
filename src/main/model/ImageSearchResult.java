@@ -2,15 +2,15 @@ package main.model;
 
 public class ImageSearchResult extends SearchResult {
     private Integer id;
+    private String imageUrl;
     private String url;
-    private String pageUrl;
     private String title;
 
-    public ImageSearchResult(Integer id, String url, String pageUrl, String title, Double score) {
+    public ImageSearchResult(Integer id, String imageUrl, String url, String title, Double score) {
         super(score);
         this.id = id;
+        this.imageUrl = imageUrl;
         this.url = url;
-        this.pageUrl = pageUrl;
         this.title = title;
     }
 
@@ -24,7 +24,9 @@ public class ImageSearchResult extends SearchResult {
         return url;
     }
 
-    public String getPageUrl() { return pageUrl; }
+    public String getImageUrl() {
+        return imageUrl;
+    }
 
     public String getTitle() {
         return title;
