@@ -1,6 +1,8 @@
 package main.utilities;
 
+import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoCommandException;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -9,15 +11,11 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.io.IOException;
 import java.util.*;
-
-import org.bson.Document;
-
-import com.mongodb.MongoClient;
-import com.mongodb.MongoCommandException;
-import org.bson.conversions.Bson;
 
 import static com.mongodb.client.model.Aggregates.*;
 
@@ -27,6 +25,7 @@ public class ConnectToDB {
 
 	private static MongoCollection imagesIndexCollection;
 	private static MongoCollection invertedIndexCollection;
+	private static MongoCollection forwardIndexCollection;
 	private static MongoCollection crawlerInfoCollection;
 
 	public static void establishConnection() {
@@ -35,6 +34,7 @@ public class ConnectToDB {
 	    database = mongo.getDatabase(Constants.DATABASE_NAME);
 		imagesIndexCollection = database.getCollection("imagesIndex");
 		invertedIndexCollection = database.getCollection("invertedIndex");
+		forwardIndexCollection = database.getCollection("forwardIndex");
 		crawlerInfoCollection = database.getCollection("crawler_info");
 	}
 
@@ -68,10 +68,9 @@ public class ConnectToDB {
 	public static boolean checkIfCrawledBefore(String url) {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		Document doc = collection.find(Filters.eq("url", url)).first();
-		if(doc == null) return false;
-		return true;
-	}
-
+        return doc != null;
+    }
+	
 	public static void markAsVisited(String url) {
 		MongoCollection<Document> collection = database.getCollection("crawler_info");
 		collection.updateOne(Filters.eq("url", url), Updates.set("visited", true));
@@ -108,7 +107,7 @@ public class ConnectToDB {
 		List<String> urls = new ArrayList<String>();
 		Iterator<Document> it = iterDoc.iterator();
 		while (it.hasNext()) {
-			urls.add(((Document)it.next()).getString("url"));
+            urls.add(it.next().getString("url"));
 		}
 		return urls;
 	}
@@ -132,7 +131,7 @@ public class ConnectToDB {
 	}
 
 	//---------Indexer---------
-	public static void pushToDatabase(String url, HashMap<String, Integer> words, Integer totalScore){
+	public static void pushToDatabase(String url, String title, HashMap<String, Integer> words, Integer totalScore){
 		removeUrlFromDatabase(url);
 		for (String word: words.keySet()){
 			float score = (float)words.get(word) / totalScore;
@@ -143,6 +142,11 @@ public class ConnectToDB {
 
 					new UpdateOptions().upsert(true));
 		}
+
+		forwardIndexCollection.updateOne(Filters.eq("_id", url),
+				Updates.set("title", title),
+				new UpdateOptions().upsert(true));
+
 		crawlerInfoCollection.updateOne(Filters.eq("url", url),
 				Updates.set("visited", false));
 	}
@@ -153,14 +157,14 @@ public class ConnectToDB {
 		invertedIndexCollection.deleteMany(Filters.size("urls", 0));
 	}
 
-	public static void pushImageToDatabase(String src, HashMap<String, Integer> words, Integer totalScore){
+	public static void pushImageToDatabase(String url, String src, String title, HashMap<String, Integer> words, Integer totalScore){
 		removeImageFromDatabase(src);
 		for (String word: words.keySet()){
 			float score = (float)words.get(word) / totalScore;
 			imagesIndexCollection.updateOne(Filters.eq("_id", word),
 
 					new org.bson.Document("$push", new org.bson.Document("images",
-							new org.bson.Document("image", src).append("score", score))),
+							new org.bson.Document("url", url).append("image", src).append("score", score))),
 
 					new UpdateOptions().upsert(true));
 		}
@@ -177,7 +181,7 @@ public class ConnectToDB {
 	}
 
 	// Ranker
-	public static AggregateIterable findTextMatches(String word)
+    public static AggregateIterable findTextMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$urls");
@@ -197,7 +201,7 @@ public class ConnectToDB {
 		return invertedIndexCollection.aggregate(pipeline);
 	}
 
-	public static AggregateIterable findImageMatches(String word)
+    public static AggregateIterable findImageMatches(String word)
 	{
 		Bson match = match(Filters.eq("_id", word));
 		Bson unwind1 = unwind("$images");
