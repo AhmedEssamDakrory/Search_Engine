@@ -12,9 +12,8 @@ public class Ranker {
 
     public static Double calcScore(Document doc)
     {
-        String url = doc.getOrDefault("url", null).toString();
-        String score = doc.getOrDefault("score", null).toString();
-        String popularity = doc.getOrDefault("popularity", null).toString();
+        String score = doc.get("score").toString();
+        String popularity = doc.get("popularity").toString();
 
         return (Double.parseDouble(score) * Integer.parseInt(popularity));
     }
@@ -32,7 +31,7 @@ public class Ranker {
             {
                 results.put(doc.get("url").toString(), doc);
 
-                String url = doc.getOrDefault("url", null).toString();
+                String url = doc.get("url").toString();
                 Double finalScore = calcScore(doc);
 
                 if (urlScore.get(url) == null)
@@ -80,19 +79,18 @@ public class Ranker {
             for (Document doc : result)
             {
                 results.put(doc.get("url").toString(), doc);
-                String url = doc.getOrDefault("url", null).toString();
-                String score = doc.getOrDefault("score", null).toString();
-                String popularity = doc.getOrDefault("popularity", null).toString();
 
-                Double finalScore = Double.parseDouble(score) * Integer.parseInt(popularity);
-                if (imgScore.get(url) == null)
+                String image = doc.get("image").toString();
+                Double finalScore = calcScore(doc);
+
+                if (imgScore.get(image) == null)
                 {
-                    imgScore.put(url, finalScore);
+                    imgScore.put(image, finalScore);
                 }
                 else
                 {
-                    Double oldScore = imgScore.get(url);
-                    imgScore.put(url, (oldScore + finalScore));
+                    Double oldScore = imgScore.get(image);
+                    imgScore.put(image, (oldScore + finalScore));
                 }
             }
         }
@@ -102,10 +100,11 @@ public class Ranker {
         {
             String strID = doc.get("id").toString();
             Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
-            String url = doc.get("url").toString();
+            String pageUrl = doc.get("url").toString();
+            String image = doc.get("image").toString();
             String title = "Title";
-            Double score = imgScore.get(url);
-            ImageSearchResult tmp = new ImageSearchResult(id, url, title, score);
+            Double score = imgScore.get(image);
+            ImageSearchResult tmp = new ImageSearchResult(id, image, pageUrl, title, score);
             orderedResults.add(tmp);
         }
 
