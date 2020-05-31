@@ -249,7 +249,7 @@ public class ConnectToDB {
         StringBuilder builder = new StringBuilder("[");
         MongoCursor<Document> it = documents.iterator();
         while (it.hasNext()) {
-            builder.append("'").append(it.next().getString("_id")).append("'");
+            builder.append("\"").append(it.next().getString("_id")).append("\"");
             if (it.hasNext()) builder.append(",");
         }
         return builder.append("]").toString();
