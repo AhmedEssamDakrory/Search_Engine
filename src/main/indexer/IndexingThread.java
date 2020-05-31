@@ -70,7 +70,7 @@ public class IndexingThread implements Runnable {
                 continue;
             String width = image.attr("width");
             String height = image.attr("height");
-            if (Integer.parseInt(width != null ? width : "100") <= 5 || Integer.parseInt(height != null ? height : "10") <= 5)
+            if ((!width.isEmpty() && Integer.parseInt(width) <= 5) || (!height.isEmpty() && Integer.parseInt(height) <= 5))
                 continue;
             Integer captionTotalScore = processImage(image, captionScore);
             int num = 0;
