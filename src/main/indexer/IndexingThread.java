@@ -77,6 +77,10 @@ public class IndexingThread implements Runnable{
         for (Element image: images){
             HashMap<String, Integer> captionScore = new HashMap<String, Integer>();
             String src = image.attr("src");
+            if (!(src.startsWith("https") || src.startsWith("//")))
+            {
+                continue;
+            }
             Integer captionTotalScore = processImage(image, captionScore);
             int num = 0;
             for (Map.Entry<String, Integer> word: wordsSorted){

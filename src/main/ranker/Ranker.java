@@ -16,7 +16,8 @@ public class Ranker {
         String score = doc.get("score").toString();
         String popularity = doc.get("popularity").toString();
 
-        return (Double.parseDouble(score) * Integer.parseInt(popularity));
+        return (Double.parseDouble(score));
+//         * Integer.parseInt(popularity)
     }
 
     // TODO: calculate IDF = log(total no of docs / (1 + docs containing word)
@@ -82,7 +83,7 @@ public class Ranker {
             AggregateIterable<Document> result = ConnectToDB.findImageMatches(word);
             for (Document doc : result)
             {
-                results.put(doc.get("url").toString(), doc);
+                results.put(doc.get("image").toString(), doc);
 
                 String image = doc.get("image").toString();
                 Double finalScore = calcScore(doc);
@@ -112,14 +113,18 @@ public class Ranker {
             orderedResults.add(tmp);
         }
 
-        orderedResults.sort(Comparator.comparing(SearchResult::getScore).reversed());
-        return orderedResults;
+        orderedResults.sort(Comparator.comparing(ImageSearchResult::getScore).reversed());
+
+        int startIndex = (pageNum - 1) * resultsPerPage;
+        int endIndex = pageNum * resultsPerPage;
+
+        return orderedResults.subList(startIndex, Math.min(endIndex, orderedResults.size()));
     }
 
     public static void main(String[] args)
     {
         ConnectToDB.establishConnection();
-        List<String> tests = Arrays.asList("academia");
+        List<String> tests = Arrays.asList("cairo");
 
         List<TextSearchResult> text = page(rankText(tests), 1, 10);
         List<ImageSearchResult> images = page(rankImages(tests), 1, 10);
@@ -133,16 +138,18 @@ public class Ranker {
             String title = res.getTitle();
             String description = res.getDescription();
             System.out.println(id + " " + url + " " + icon + " " + title + " " + description);
+            System.out.println("Score: " + res.getScore());
         }
 
         System.out.println("\nImages:");
         for(ImageSearchResult res : images)
         {
-            String image = res.getImageUrl();
-            String url = res.getUrl();
+            String image = res.getUrl();
+            String url = res.getPageUrl();
             Integer id = res.getID();
             String title = res.getTitle();
             System.out.println(id + " " + url + " " + image + " " + title);
+            System.out.println("Score: " + res.getScore());
         }
     }
 }
