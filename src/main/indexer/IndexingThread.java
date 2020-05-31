@@ -70,8 +70,11 @@ public class IndexingThread implements Runnable {
                 continue;
             String width = image.attr("width");
             String height = image.attr("height");
-            if ((!width.isEmpty() && Integer.parseInt(width) <= 5) || (!height.isEmpty() && Integer.parseInt(height) <= 5))
-                continue;
+            try {
+                if ((!width.isEmpty() && Integer.parseInt(width) <= 5) || (!height.isEmpty() && Integer.parseInt(height) <= 5))
+                    continue;
+            } catch (NumberFormatException ignore) {
+            }
             Integer captionTotalScore = processImage(image, captionScore);
             int num = 0;
             for (Map.Entry<String, Integer> word : wordsSorted) {
