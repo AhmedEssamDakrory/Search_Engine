@@ -16,7 +16,7 @@ import java.util.List;
 public class TextSearch extends HttpServlet {
 
     private static final int CACHE_LIMIT = 20;
-    private LinkedHashMap<Request, List<TextSearchResult>> cache;
+    private LinkedHashMap<String, List<TextSearchResult>> cache;
 
     public TextSearch() {
         ConnectToDB.establishConnection();
@@ -26,32 +26,24 @@ public class TextSearch extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String query = req.getParameter("query");
-        Request request = new Request(query);
         int page_number = Integer.parseInt(req.getParameter("page_number"));
         int per_page = Integer.parseInt(req.getParameter("per_page"));
-        String message = new Gson().toJson(Ranker.page(search(request), page_number, per_page));
+        String message = new Gson().toJson(Ranker.page(search(query, 0), page_number, per_page));
         resp.setContentType("application/json");
         resp.getWriter().println(message);
     }
 
-    private List<TextSearchResult> search(Request request) {
-        if (cache.containsKey(request)) {
-            return cache.get(request);
+    // TODO userID
+    private List<TextSearchResult> search(String query, int userID) {
+        String key = query + userID;
+        if (cache.containsKey(key)) {
+            return cache.get(key);
         }
         if (cache.size() >= CACHE_LIMIT)
             cache.remove(cache.entrySet().iterator().next().getKey());
         QueryProcessor queryProcessor = QueryProcessor.getInstance();
-        List<TextSearchResult> allResults = Ranker.rankText(queryProcessor.process(request.query));
-        cache.put(request, allResults);
+        List<TextSearchResult> allResults = Ranker.rankText(queryProcessor.process(query));
+        cache.put(key, allResults);
         return allResults;
-    }
-
-    private static class Request {
-        String query;
-
-        // TODO private int userID:
-        public Request(String query) {
-            this.query = query;
-        }
     }
 }
