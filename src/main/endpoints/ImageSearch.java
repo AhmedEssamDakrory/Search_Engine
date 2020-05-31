@@ -29,7 +29,9 @@ public class ImageSearch extends HttpServlet {
         String query = req.getParameter("query");
         int page_number = Integer.parseInt(req.getParameter("page_number"));
         int per_page = Integer.parseInt(req.getParameter("per_page"));
-        String message = new Gson().toJson(Ranker.page(search(query, 0), page_number, per_page));
+        List<ImageSearchResult> allResults = search(query, 0);
+        if (!allResults.isEmpty()) ConnectToDB.addSuggestion(query);
+        String message = new Gson().toJson(Ranker.page(allResults, page_number, per_page));
         resp.setContentType("application/json");
         resp.getWriter().println(message);
     }
