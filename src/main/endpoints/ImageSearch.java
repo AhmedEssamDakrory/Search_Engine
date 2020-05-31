@@ -1,7 +1,7 @@
 package main.endpoints;
 
 import com.google.gson.Gson;
-import main.model.TextSearchResult;
+import main.model.ImageSearchResult;
 import main.ranker.Ranker;
 import main.utilities.ConnectToDB;
 import main.utilities.QueryProcessor;
@@ -13,12 +13,13 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-public class TextSearch extends HttpServlet {
+public class ImageSearch extends HttpServlet {
 
     private static final int CACHE_LIMIT = 20;
-    private LinkedHashMap<Request, List<TextSearchResult>> cache;
+    private LinkedHashMap<ImageSearch.Request, List<ImageSearchResult>> cache;
 
-    public TextSearch() {
+
+    public ImageSearch() {
         ConnectToDB.establishConnection();
         cache = new LinkedHashMap<>();
     }
@@ -34,14 +35,14 @@ public class TextSearch extends HttpServlet {
         resp.getWriter().println(message);
     }
 
-    private List<TextSearchResult> search(Request request) {
+    private List<ImageSearchResult> search(Request request) {
         if (cache.containsKey(request)) {
             return cache.get(request);
         }
         if (cache.size() >= CACHE_LIMIT)
             cache.remove(cache.entrySet().iterator().next().getKey());
         QueryProcessor queryProcessor = QueryProcessor.getInstance();
-        List<TextSearchResult> allResults = Ranker.rankText(queryProcessor.process(request.query));
+        List<ImageSearchResult> allResults = Ranker.rankImages(queryProcessor.process(request.query));
         cache.put(request, allResults);
         return allResults;
     }

@@ -1,12 +1,13 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
+import main.model.ImageSearchResult;
+import main.model.SearchResult;
+import main.model.TextSearchResult;
+import main.utilities.ConnectToDB;
 import org.bson.Document;
 
 import java.util.*;
-
-import main.model.*;
-import main.utilities.ConnectToDB;
 
 public class Ranker {
 
@@ -21,7 +22,7 @@ public class Ranker {
 
     // TODO: calculate IDF = log(total no of docs / (1 + docs containing word)
     // TODO: allow for extra metrics in the scoring (country, personality, etc.)
-    public static List<TextSearchResult> rankText(List<String> searchWords, int pageNum, int resultsPerPage)
+    public static List<TextSearchResult> rankText(List<String> searchWords)
     {
         HashMap<String, Double> urlScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
@@ -63,14 +64,16 @@ public class Ranker {
         }
 
         orderedResults.sort(Comparator.comparing(TextSearchResult::getScore).reversed());
-
-        int startIndex = (pageNum - 1) * resultsPerPage;
-        int endIndex = pageNum * resultsPerPage;
-
-        return orderedResults.subList(startIndex, Math.min(endIndex, orderedResults.size()));
+        return orderedResults;
     }
 
-    public static List<ImageSearchResult> rankImages(List<String> searchWords, int pageNum, int resultsPerPage)
+    public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
+        int startIndex = (pageNumber - 1) * resultsPerPage;
+        int endIndex = pageNumber * resultsPerPage;
+        return list.subList(startIndex, Math.min(endIndex, list.size()));
+    }
+
+    public static List<ImageSearchResult> rankImages(List<String> searchWords)
     {
         HashMap<String, Double> imgScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
@@ -123,8 +126,8 @@ public class Ranker {
         ConnectToDB.establishConnection();
         List<String> tests = Arrays.asList("cairo");
 
-        List<TextSearchResult> text = rankText(tests, 1, 10);
-        List<ImageSearchResult> images = rankImages(tests, 1, 10);
+        List<TextSearchResult> text = page(rankText(tests), 1, 10);
+        List<ImageSearchResult> images = page(rankImages(tests), 1, 10);
 
         System.out.println("Text:");
         for(TextSearchResult res : text)
