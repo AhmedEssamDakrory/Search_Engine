@@ -33,6 +33,7 @@ public class ImageSearch extends HttpServlet {
         if (!allResults.isEmpty()) ConnectToDB.addSuggestion(query);
         String message = new Gson().toJson(Ranker.page(allResults, page_number, per_page));
         resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
         resp.getWriter().println(message);
     }
 
