@@ -113,12 +113,8 @@ public class Ranker {
             orderedResults.add(tmp);
         }
 
-        orderedResults.sort(Comparator.comparing(ImageSearchResult::getScore).reversed());
-
-        int startIndex = (pageNum - 1) * resultsPerPage;
-        int endIndex = pageNum * resultsPerPage;
-
-        return orderedResults.subList(startIndex, Math.min(endIndex, orderedResults.size()));
+        orderedResults.sort(Comparator.comparing(SearchResult::getScore).reversed());
+        return orderedResults;
     }
 
     public static void main(String[] args)
@@ -144,8 +140,8 @@ public class Ranker {
         System.out.println("\nImages:");
         for(ImageSearchResult res : images)
         {
-            String image = res.getUrl();
-            String url = res.getPageUrl();
+            String image = res.getImageUrl();
+            String url = res.getUrl();
             Integer id = res.getID();
             String title = res.getTitle();
             System.out.println(id + " " + url + " " + image + " " + title);
