@@ -1,11 +1,11 @@
 package main.indexer;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import main.utilities.ConnectToDB;
 import main.utilities.Constants;
 import main.utilities.QueryProcessor;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -77,7 +77,7 @@ public class IndexingThread implements Runnable{
         for (Element image: images){
             HashMap<String, Integer> captionScore = new HashMap<String, Integer>();
             String src = image.attr("src");
-            if (!(src.startsWith("https") || src.startsWith("//")))
+            if (!(src.startsWith("http") || src.startsWith("//")))
             {
                 continue;
             }
