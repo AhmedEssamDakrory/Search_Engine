@@ -1,13 +1,12 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
-import main.model.ImageSearchResult;
-import main.model.SearchResult;
-import main.model.TextSearchResult;
-import main.utilities.ConnectToDB;
 import org.bson.Document;
 
 import java.util.*;
+
+import main.utilities.ConnectToDB;
+import main.model.*;
 
 public class Ranker {
 
@@ -59,6 +58,7 @@ public class Ranker {
             String title = doc.get("title").toString();
             String description = "Description";
             Double score = urlScore.get(url);
+
             TextSearchResult tmp = new TextSearchResult(id, url, icon, title, description, score);
             orderedResults.add(tmp);
         }
@@ -109,16 +109,13 @@ public class Ranker {
             String image = doc.get("image").toString();
             String title = doc.get("title").toString();
             Double score = imgScore.get(image);
+
             ImageSearchResult tmp = new ImageSearchResult(id, image, pageUrl, title, score);
             orderedResults.add(tmp);
         }
 
         orderedResults.sort(Comparator.comparing(ImageSearchResult::getScore).reversed());
-
-        int startIndex = (pageNum - 1) * resultsPerPage;
-        int endIndex = pageNum * resultsPerPage;
-
-        return orderedResults.subList(startIndex, Math.min(endIndex, orderedResults.size()));
+        return orderedResults;
     }
 
     public static void main(String[] args)
@@ -144,8 +141,8 @@ public class Ranker {
         System.out.println("\nImages:");
         for(ImageSearchResult res : images)
         {
-            String image = res.getUrl();
-            String url = res.getPageUrl();
+            String image = res.getImageUrl();
+            String url = res.getUrl();
             Integer id = res.getID();
             String title = res.getTitle();
             System.out.println(id + " " + url + " " + image + " " + title);
