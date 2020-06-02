@@ -117,7 +117,7 @@ public class ConnectToDB {
             Document doc = new Document()
                     .append("url", url)
                     .append("crawled", false)
-                    .append("visited", false)
+                    .append("indexed", false)
                     .append("popularity", 0);
             ld.add(doc);
         }
