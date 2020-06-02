@@ -1,10 +1,11 @@
-while getopts "apcil" option; do
+while getopts "apcilr" option; do
   case $option in
   a) all=true ;;
   p) pull=true ;;
   c) crawl=true ;;
   i) index=true ;;
   l) lib=true ;;
+  r) resume=true ;;
   esac
 done
 cd ~/Search_Engine
@@ -25,11 +26,16 @@ if [ "$all" == true ] || [ "$lib" == true ]; then
 fi
 
 if [ "$all" == true ] || [ "$crawl" == true ]; then
+  if [ "$resume" != true ]; then
+    mongo search_engine --eval "db.crawler_info.drop()"
+  fi
   cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
   java -cp .:"../lib/*" main/crawler/WebCrawler
 fi
 if [ "$all" == true ] || [ "$index" == true ]; then
-  mongo search_engine --eval "db.invertedIndex.drop(); db.forwardIndex.drop(); db.imagesIndex.drop(); db.crawler_info.updateMany({}, {\$set: {indexed: false}})"
+  if [ "$resume" != true ]; then
+    mongo search_engine --eval "db.invertedIndex.drop(); db.forwardIndex.drop(); db.imagesIndex.drop(); db.crawler_info.updateMany({}, {\$set: {indexed: false}})"
+  fi
   cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
   java -cp .:"../lib/*" main/indexer/Indexer
 fi
