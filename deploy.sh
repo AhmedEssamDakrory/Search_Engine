@@ -8,7 +8,7 @@ while getopts "apcil" option; do
   esac
 done
 cd ~/Search_Engine
-if [ "$pull" == true ]; then
+if [ "$all" == true ] || [ "$pull" == true ]; then
   git pull
 fi
 # Compile
@@ -18,17 +18,17 @@ sudo cp -r src/main/ /opt/tomcat/webapps/ROOT/WEB-INF/classes
 sudo cp -r data/web.xml /opt/tomcat/webapps/ROOT/WEB-INF/
 
 # Copy libs
-if [ "$lib" == true ]; then
+if [ "$all" == true ] || [ "$lib" == true ]; then
   sudo rm -rf /opt/tomcat/webapps/ROOT/WEB-INF/lib/*
   sudo cp lib/*.jar /opt/tomcat/webapps/ROOT/WEB-INF/lib/
   sudo cp lib/mongo-driver-3.6.3/*.jar /opt/tomcat/webapps/ROOT/WEB-INF/lib/
 fi
 
-if [ "$crawl" == true ]; then
+if [ "$all" == true ] || [ "$crawl" == true ]; then
   cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
   java -cp .:"../lib/*" main/crawler/WebCrawler
 fi
-if [ "$index" == true ]; then
+if [ "$all" == true ] || [ "$index" == true ]; then
   mongo search_engine --eval "db.invertedIndex.drop(); db.forwardIndex.drop(); db.imagesIndex.drop()"
   cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
   java -cp .:"../lib/*" main/indexer/Indexer
