@@ -261,7 +261,7 @@ public class ConnectToDB {
     public static String requestUserID() {
         Document doc = new Document();
         usersCollection.insertOne(doc);
-        return doc.get("_id").toString();
+        return "\"" + doc.get("_id").toString() + "\"";
     }
 
     public static void clearDB() {
