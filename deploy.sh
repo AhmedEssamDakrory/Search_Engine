@@ -29,7 +29,7 @@ if [ "$all" == true ] || [ "$crawl" == true ]; then
   java -cp .:"../lib/*" main/crawler/WebCrawler
 fi
 if [ "$all" == true ] || [ "$index" == true ]; then
-  mongo search_engine --eval "db.invertedIndex.drop(); db.forwardIndex.drop(); db.imagesIndex.drop()"
+  mongo search_engine --eval "db.invertedIndex.drop(); db.forwardIndex.drop(); db.imagesIndex.drop(); db.crawler_info.updateMany({}, {\$set: {visited: true}})"
   cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
   java -cp .:"../lib/*" main/indexer/Indexer
 fi
