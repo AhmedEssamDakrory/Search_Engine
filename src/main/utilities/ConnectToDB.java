@@ -7,6 +7,7 @@ import com.mongodb.client.*;
 import com.mongodb.client.model.*;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 import java.util.*;
 
@@ -264,6 +265,21 @@ public class ConnectToDB {
         return "\"" + doc.get("_id").toString() + "\"";
     }
 
+    public static void click(String user, String link) {
+        link = link.trim().toLowerCase();
+        Bson filter = new Document("_id", new ObjectId(user)).append("urls.url", link);
+        if (usersCollection.find(filter).first() == null) {
+            usersCollection.updateOne(Filters.eq("_id", new ObjectId(user)),
+                    new Document("$push",
+                            new Document("urls",
+                                    new Document("url", link).append("count", 1)
+                            )), new UpdateOptions().upsert(true));
+        } else {
+            usersCollection.updateOne(filter,
+                    new Document("$inc", new Document("urls.$.count", 1)));
+        }
+    }
+
     public static void clearDB() {
         //***************** drop all collections**********************
         dropCrawlerCollections();
@@ -278,8 +294,6 @@ public class ConnectToDB {
     }
 
     public static void main(String[] args) {
-        establishConnection();
-        System.out.println(requestUserID());
     }
 
 }
