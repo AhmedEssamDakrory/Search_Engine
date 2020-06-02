@@ -17,10 +17,10 @@ public class ConnectToDB {
     private static MongoClient mongo;
     private static MongoDatabase database;
 
-    private static MongoCollection imagesIndexCollection;
-    private static MongoCollection invertedIndexCollection;
-    private static MongoCollection forwardIndexCollection;
-    private static MongoCollection crawlerInfoCollection;
+    private static MongoCollection<Document> imagesIndexCollection;
+    private static MongoCollection<Document> invertedIndexCollection;
+    private static MongoCollection<Document> forwardIndexCollection;
+    private static MongoCollection<Document> crawlerInfoCollection;
     private static MongoCollection<Document> suggestionsCollection;
     private static MongoCollection<Document> usersCollection;
 
@@ -63,7 +63,7 @@ public class ConnectToDB {
         Document doc = new Document()
                 .append("url", url)
                 .append("crawled", false)
-                .append("visited", false)
+                .append("indexed", false)
                 .append("popularity", 0);
         collection.insertOne(doc);
     }
@@ -74,14 +74,9 @@ public class ConnectToDB {
         return doc != null;
     }
 
-    public static void markAsVisited(String url) {
-        MongoCollection<Document> collection = database.getCollection("crawler_info");
-        collection.updateOne(Filters.eq("url", url), Updates.set("visited", true));
-    }
-
     public static void markUrlAsCrawled(String url) {
         MongoCollection<Document> collection = database.getCollection("crawler_info");
-        collection.updateOne(Filters.eq("url", url), Updates.set("crawled", true));
+        collection.updateOne(Filters.eq("url", url), new Document("$set", new Document("crawled", true).append("indexed", false)));
     }
 
     public static void incUrlsPopularity(String url) {
@@ -152,7 +147,7 @@ public class ConnectToDB {
                 new UpdateOptions().upsert(true));
 
         crawlerInfoCollection.updateOne(Filters.eq("url", url),
-                Updates.set("visited", false));
+                Updates.set("indexed", true));
     }
 
     public static void removeUrlFromDatabase(String url) {
@@ -180,8 +175,8 @@ public class ConnectToDB {
         imagesIndexCollection.deleteMany(Filters.size("images", 0));
     }
 
-    public static FindIterable<Document> pullNotVisitedURLs() {
-        return crawlerInfoCollection.find(Filters.eq("visited", true));
+    public static FindIterable<Document> pullNotIndexedURLs() {
+        return crawlerInfoCollection.find(new Document("crawled", true).append("indexed", false));
     }
 
     // Ranker

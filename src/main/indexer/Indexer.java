@@ -19,7 +19,7 @@ public class Indexer{
     }
 
     public static void runIndexer(int numThreads){
-        FindIterable<org.bson.Document> results = ConnectToDB.pullNotVisitedURLs();
+        FindIterable<org.bson.Document> results = ConnectToDB.pullNotIndexedURLs();
         for (org.bson.Document doc: results){
             String path = doc.getOrDefault("_id", null).toString();
             String url = doc.getOrDefault("url", null).toString();

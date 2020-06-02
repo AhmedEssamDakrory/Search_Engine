@@ -70,7 +70,6 @@ public class CrawlerThread extends Thread {
 						this.extractLinks(doc);
 					}
 					ConnectToDB.markUrlAsCrawled(url);
-					ConnectToDB.markAsVisited(url);
 				}
 			} catch (IOException e) {
 				
