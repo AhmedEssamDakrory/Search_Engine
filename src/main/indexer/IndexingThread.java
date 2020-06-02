@@ -48,6 +48,7 @@ public class IndexingThread implements Runnable {
         for (Integer score : wordScores.values()) {
             totalScore += score;
         }
+        if (title.isEmpty()) title = url;
         ConnectToDB.pushToDatabase(url, title, wordScores, totalScore);
 
         //---------Process Images----------
