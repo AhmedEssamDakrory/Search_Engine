@@ -231,6 +231,17 @@ public class ConnectToDB {
         List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
         return imagesIndexCollection.aggregate(pipeline);
     }
+    
+    public static long allResultsCount()
+    {
+        return invertedIndexCollection.count();
+    }
+
+    public static long searchResultsCount(String word)
+    {
+        Bson match = Filters.eq("_d", word);
+        return invertedIndexCollection.count(match);
+    }
 
     public static void addSuggestion(String suggestion) {
         suggestion = suggestion.trim().toLowerCase();

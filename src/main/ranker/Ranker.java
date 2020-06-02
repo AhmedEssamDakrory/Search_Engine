@@ -11,17 +11,20 @@ import java.util.*;
 
 public class Ranker {
 
-    public static Double calcScore(Document doc)
+    // IDF = log(total no of docs / (1 + docs containing word))
+    // TODO: allow for extra metrics in the scoring (country, personality, etc.)
+    public static double calcScore(Document doc, String word)
     {
         String score = doc.get("score").toString();
-        String popularity = doc.get("popularity").toString();
+//        String popularity = doc.get("popularity").toString();
 
-        return (Double.parseDouble(score));
-//         * Integer.parseInt(popularity)
+        long totDocs = ConnectToDB.allResultsCount();
+        long searchDocs = ConnectToDB.searchResultsCount(word);
+        double docWeight = Math.log(1.0 * totDocs / (1 + searchDocs));
+
+        return (Double.parseDouble(score) * docWeight);
     }
 
-    // TODO: calculate IDF = log(total no of docs / (1 + docs containing word)
-    // TODO: allow for extra metrics in the scoring (country, personality, etc.)
     public static List<TextSearchResult> rankText(List<String> searchWords)
     {
         HashMap<String, Double> urlScore = new HashMap<>();
@@ -35,7 +38,7 @@ public class Ranker {
                 results.put(doc.get("url").toString(), doc);
 
                 String url = doc.get("url").toString();
-                Double finalScore = calcScore(doc);
+                Double finalScore = calcScore(doc, word);
 
                 if (urlScore.get(url) == null)
                 {
@@ -86,7 +89,7 @@ public class Ranker {
                 results.put(doc.get("image").toString(), doc);
 
                 String image = doc.get("image").toString();
-                Double finalScore = calcScore(doc);
+                Double finalScore = calcScore(doc, word);
 
                 if (imgScore.get(image) == null)
                 {
@@ -109,6 +112,7 @@ public class Ranker {
             String image = doc.get("image").toString();
             String title = doc.get("title").toString();
             Double score = imgScore.get(image);
+
             ImageSearchResult tmp = new ImageSearchResult(id, image, pageUrl, title, score);
             orderedResults.add(tmp);
         }
@@ -120,7 +124,7 @@ public class Ranker {
     public static void main(String[] args)
     {
         ConnectToDB.establishConnection();
-        List<String> tests = Arrays.asList("cairo");
+        List<String> tests = Arrays.asList("whit", "hous");
 
         List<TextSearchResult> text = page(rankText(tests), 1, 10);
         List<ImageSearchResult> images = page(rankImages(tests), 1, 10);
