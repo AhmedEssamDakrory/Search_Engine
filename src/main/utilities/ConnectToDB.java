@@ -21,6 +21,7 @@ public class ConnectToDB {
     private static MongoCollection forwardIndexCollection;
     private static MongoCollection crawlerInfoCollection;
     private static MongoCollection<Document> suggestionsCollection;
+    private static MongoCollection<Document> usersCollection;
 
     public static void establishConnection() {
         if (mongo != null) {
@@ -35,6 +36,8 @@ public class ConnectToDB {
         forwardIndexCollection = database.getCollection("forwardIndex");
         crawlerInfoCollection = database.getCollection("crawler_info");
         suggestionsCollection = database.getCollection("suggestions");
+        usersCollection = database.getCollection("users");
+
     }
 
     public static void init() {
@@ -255,16 +258,28 @@ public class ConnectToDB {
         return builder.append("]").toString();
     }
 
+    public static String requestUserID() {
+        Document doc = new Document();
+        usersCollection.insertOne(doc);
+        return doc.get("_id").toString();
+    }
+
     public static void clearDB() {
         //***************** drop all collections**********************
         dropCrawlerCollections();
         invertedIndexCollection.drop();
         imagesIndexCollection.drop();
         suggestionsCollection.drop();
+        usersCollection.drop();
     }
 
     public static void closeConnection() {
         mongo.close();
+    }
+
+    public static void main(String[] args) {
+        establishConnection();
+        System.out.println(requestUserID());
     }
 
 }
