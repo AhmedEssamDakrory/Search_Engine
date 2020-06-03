@@ -1,7 +1,6 @@
 package main.endpoints.search;
 
 import main.model.TextSearchResult;
-import main.ranker.Ranker;
 import main.utilities.DescriptionGetter;
 
 import java.util.ArrayList;

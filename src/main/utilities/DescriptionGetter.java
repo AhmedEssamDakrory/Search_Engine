@@ -33,7 +33,7 @@ public class DescriptionGetter {
                 for (int j = l; j <= r; j++) {
                     descript.append(plainText.get(url)[j]).append(" ");
                 }
-                descript.append("...");
+                if (i != s.size() - 1) descript.append("...");
             }
             descriptions.put(url, descript.toString());
         }
