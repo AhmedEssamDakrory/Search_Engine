@@ -23,6 +23,7 @@ public class ConnectToDB {
     private static MongoCollection<Document> crawlerInfoCollection;
     private static MongoCollection<Document> suggestionsCollection;
     private static MongoCollection<Document> usersCollection;
+    private static MongoCollection<Document> trendsCollection;
 
     public static void establishConnection() {
         if (mongo != null) {
@@ -283,6 +284,20 @@ public class ConnectToDB {
         } else {
             usersCollection.updateOne(filter,
                     new Document("$inc", new Document("urls.$.count", 1)));
+        }
+    }
+
+    public static void addPersonToTrends(String country, String name) {
+        Bson filter = new Document("_id", country).append("names.name", name);
+        if (trendsCollection.find(filter).first() == null) {
+            trendsCollection.updateOne(Filters.eq("_id", country),
+                    new Document("$push",
+                            new Document("names",
+                                    new Document("name", name).append("count", 1)
+                            )), new UpdateOptions().upsert(true));
+        } else {
+            trendsCollection.updateOne(filter,
+                    new Document("$inc", new Document("names.$.count", 1)));
         }
     }
 

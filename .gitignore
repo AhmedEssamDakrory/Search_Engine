@@ -5,3 +5,4 @@ crawlingLogFile
 crawlingLogFile.lck
 *.iml
 *.class
+/classifiers/english.all.3class.distsim.crf.ser.gz

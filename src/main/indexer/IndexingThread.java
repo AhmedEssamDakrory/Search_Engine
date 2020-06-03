@@ -2,7 +2,7 @@ package main.indexer;
 
 import main.utilities.ConnectToDB;
 import main.utilities.Constants;
-import main.utilities.QueryProcessor;
+import main.queryprocessor.QueryProcessor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
