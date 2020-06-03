@@ -388,7 +388,6 @@ public class ConnectToDB {
         Bson unwind = unwind("$urls");
         Bson match2 = match(Filters.in("urls.url", urls));
         Bson project = project(Projections.fields(
-                Projections.include("_id"),
                 Projections.computed("url", "$urls.url"),
                 Projections.computed("index", "$urls.index")
         ));
@@ -414,45 +413,5 @@ public class ConnectToDB {
     }
 
     public static void main(String[] args) {
-        establishConnection();
-        ArrayList<String> urls = new ArrayList<String>();
-        ArrayList<String> words = new ArrayList<String>();
-        urls.add("https://stackoverflow.com");
-        urls.add("https://stackoverflow.com/teams/create");
-        words.add("free");
-        words.add("code");
-        HashMap<String, String[]> plainText  = new HashMap<>();
-        AggregateIterable<Document> result = getURLsDescriptions(urls, words, plainText);
-        HashMap<String, Vector<Integer>> site = new HashMap<>();
-        HashMap<String, String> descriptions = new HashMap<>();
-        for (Document doc: result){
-            String word = doc.getString("_id");
-            String url = doc.getString("url");
-            Integer index = doc.getInteger("index");
-            if (!site.containsKey(url)) site.put(url, new Vector<Integer>());
-            site.get(url).add(index);
-        }
-        for (String url: site.keySet()){
-            Vector<Integer> s = site.get(url);
-            StringBuilder descript = new StringBuilder();
-            int r = -1;
-            for (int i=0; i<s.size(); i++){
-                int idx = s.get(i);
-                if (r >= idx) continue;
-                int l = Math.max(idx - Constants.DESCRIPTION_RANGE / 2, 0);
-                r = Math.min(l + Constants.DESCRIPTION_RANGE, plainText.get(url).length - 1);
-                System.out.println(l + " " + r);
-                for (int j = l; j<=r; j++){
-                    descript.append(plainText.get(url)[j]).append(" ");
-                }
-                descript.append("...");
-            }
-            descriptions.put(url, descript.toString());
-        }
-        for (String d: descriptions.values()){
-            System.out.println(d);
-        }
     }
-
-
 }
