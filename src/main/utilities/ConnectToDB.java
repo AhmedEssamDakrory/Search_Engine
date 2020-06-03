@@ -5,6 +5,7 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.*;
 import com.mongodb.client.model.*;
+import main.model.Trend;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -24,6 +25,7 @@ public class ConnectToDB {
     private static MongoCollection<Document> crawlerInfoCollection;
     private static MongoCollection<Document> suggestionsCollection;
     private static MongoCollection<Document> usersCollection;
+    private static MongoCollection<Document> trendsCollection;
 
     public static void establishConnection() {
         if (mongo != null) {
@@ -39,7 +41,7 @@ public class ConnectToDB {
         crawlerInfoCollection = database.getCollection("crawler_info");
         suggestionsCollection = database.getCollection("suggestions");
         usersCollection = database.getCollection("users");
-
+        trendsCollection = database.getCollection("trends");
     }
 
     public static void init() {
@@ -347,6 +349,37 @@ public class ConnectToDB {
         }
     }
 
+    public static void addPersonToTrends(String country, String name) {
+        Bson filter = new Document("_id", country).append("names.name", name);
+        if (trendsCollection.find(filter).first() == null) {
+            trendsCollection.updateOne(Filters.eq("_id", country),
+                    new Document("$push",
+                            new Document("names",
+                                    new Document("name", name).append("count", 1)
+                            )), new UpdateOptions().upsert(true));
+        } else {
+            trendsCollection.updateOne(filter,
+                    new Document("$inc", new Document("names.$.count", 1)));
+        }
+    }
+
+    public static ArrayList<Trend> getTrends(String country) {
+        ArrayList<Trend> trends = new ArrayList<>();
+        Document document = trendsCollection.find(Filters.eq("_id", country)).first();
+        if (document == null) return trends;
+        ArrayList<Document> persons = (ArrayList<Document>) document.get("names");
+        persons.sort(Comparator.comparing(o -> -o.getInteger("count")));
+        int totalVotes = 0;
+        int size = Math.min(persons.size(), 20);
+        for (int i = 0; i < size; i++)
+            totalVotes += persons.get(i).getInteger("count");
+        for (int i = 0; i < size; i++) {
+            Document person = persons.get(i);
+            trends.add(new Trend(person.getString("name"), 100 * person.getInteger("count") / totalVotes));
+        }
+        return trends;
+    }
+
     public static void clearDB() {
         //***************** drop all collections**********************
         dropCrawlerCollections();
@@ -354,6 +387,7 @@ public class ConnectToDB {
         imagesIndexCollection.drop();
         suggestionsCollection.drop();
         usersCollection.drop();
+        trendsCollection.drop();
     }
 
     public static void closeConnection() {
