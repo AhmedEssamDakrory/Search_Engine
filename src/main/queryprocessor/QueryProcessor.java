@@ -23,7 +23,6 @@ public class QueryProcessor {
 
     private QueryProcessor() {
         initStopWords();
-        loadClassifier();
         stemmer = new PorterStemmer();
     }
 
@@ -58,6 +57,7 @@ public class QueryProcessor {
     }
 
     public void extractPersonName(String country, String query, PersonNameThread.PersonNameListener listener) {
+        loadClassifier();
         new PersonNameThread(classifier, country, query, listener).start();
     }
 
@@ -75,6 +75,7 @@ public class QueryProcessor {
     }
 
     private void loadClassifier() {
+        if (classifier != null) return;
         String serializedClassifier = "classifiers/english.all.3class.distsim.crf.ser.gz";
         try {
             classifier = CRFClassifier.getClassifier(serializedClassifier);
