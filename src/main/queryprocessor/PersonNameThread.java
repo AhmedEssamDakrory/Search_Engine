@@ -14,7 +14,7 @@ public class PersonNameThread extends Thread {
     private String query;
     private PersonNameListener listener;
 
-    public PersonNameThread(AbstractSequenceClassifier<CoreLabel> classifier, String country, String query, PersonNameListener listener) {
+    PersonNameThread(AbstractSequenceClassifier<CoreLabel> classifier, String country, String query, PersonNameListener listener) {
         this.classifier = classifier;
         this.country = country;
         this.query = query;

@@ -58,7 +58,7 @@ public class QueryProcessor {
     }
 
     public void extractPersonName(String country, String query, PersonNameThread.PersonNameListener listener) {
-        new PersonNameThread(classifier, country, query, listener);
+        new PersonNameThread(classifier, country, query, listener).start();
     }
 
     private void initStopWords() {
