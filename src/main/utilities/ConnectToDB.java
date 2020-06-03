@@ -304,6 +304,45 @@ public class ConnectToDB {
         return crawlerInfoCollection.aggregate(pipeline);
     }
 
+    public static void savePageRank(HashMap<String, Integer> urlID, double[] pageRank)
+    {
+        for (String url : urlID.keySet())
+        {
+            Bson filter = Filters.eq("_id", url);
+            Bson update = set("pageRank", pageRank[urlID.get(url)]);
+
+            forwardIndexCollection.updateOne(filter, update);
+        }
+    }
+
+    public static boolean isPageRankAvailable(int dim)
+    {
+        Bson match = match(Filters.exists("pageRank"));
+        Bson count = count();
+
+        List<Bson> pipeline = Arrays.asList(match, count);
+        AggregateIterable<Document> result = forwardIndexCollection.aggregate(pipeline);
+        if (result == null || result.first() == null)
+        {
+            return false;
+        }
+
+        double available = Double.parseDouble(result.first().get("count").toString());
+        return (available == dim);
+    }
+
+    public static AggregateIterable<Document> readPageRank()
+    {
+        Bson match = match(Filters.exists("pageRank"));
+        Bson project = project(Projections.fields(
+                Projections.computed("url", "$_id"),
+                Projections.include("pageRank")
+        ));
+
+        List<Bson> pipeline = Arrays.asList(match, project);
+        return forwardIndexCollection.aggregate(pipeline);
+    }
+
     public static void addSuggestion(String suggestion) {
         suggestion = suggestion.trim().toLowerCase();
         Bson filter = Filters.eq("_id", suggestion);

@@ -22,9 +22,9 @@ public class Ranker {
 
     public Ranker()
     {
-        PageRank.fillAdjList();
-        PageRank.normalizeAdjList();
-        PageRank.updateRank(1000, 0.85);
+        ConnectToDB.establishConnection();
+
+        PageRank.run(100, 0.85);
 
         PageRank.print();
     }
@@ -66,7 +66,7 @@ public class Ranker {
             System.out.println("Malformed URL: " + e.getMessage());
         }
 
-        return (score * docWeight * getPageRank(url) * countryBonus);
+        return (score * docWeight * PageRank.getPageRank(url) * countryBonus);
     }
 
     public List<TextSearchResult> rankText(List<String> searchWords, String country)
@@ -172,6 +172,8 @@ public class Ranker {
         return orderedResults;
     }
 
+//    public List<TextSearchResult> rankPhrases
+
     public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
         int startIndex = (pageNumber - 1) * resultsPerPage;
         int endIndex = pageNumber * resultsPerPage;
@@ -180,10 +182,6 @@ public class Ranker {
 
     public static void main(String[] args)
     {
-        System.out.println("abd".endsWith(""));
-
-        ConnectToDB.establishConnection();
-
         Ranker ranker = new Ranker();
 
         List<String> tests = Arrays.asList("comput", "scienc");

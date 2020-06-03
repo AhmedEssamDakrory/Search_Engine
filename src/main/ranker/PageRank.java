@@ -14,10 +14,27 @@ import java.io.IOException;
 import java.util.*;
 
 public class PageRank {
-    protected static int dim;
+    protected static Integer dim;
     protected static double[][] adjList;
     protected static double[] pageRank;
     protected static HashMap<String, Integer> urlID = new HashMap<>();
+
+    public static void setup()
+    {
+        adjList = new double[dim][dim];
+        pageRank = new double[dim];
+
+        AggregateIterable<org.bson.Document> allDocs = ConnectToDB.getAllIndexedData();
+        for (org.bson.Document doc : allDocs)
+        {
+            String url = doc.get("url").toString();
+
+            if (urlID.get(url) == null)
+            {
+                urlID.put(url, urlID.size());
+            }
+        }
+    }
 
     private static int[] parseOutgoingLinks(String url)
     {
@@ -41,25 +58,7 @@ public class PageRank {
 
     public static void fillAdjList()
     {
-        dim = ConnectToDB.countAllDocs();
-        adjList = new double[dim][dim];
-        pageRank = new double[dim];
-
-        AggregateIterable<org.bson.Document> allDocs = ConnectToDB.getAllIndexedData();
-        List<String> urlsList = new ArrayList<>();
-        for (org.bson.Document doc : allDocs)
-        {
-            String url = doc.get("url").toString();
-
-            urlsList.add(url);
-
-            if (urlID.get(url) == null)
-            {
-                urlID.put(url, urlID.size());
-            }
-        }
-
-        for (String url : urlsList) {
+        for (String url : urlID.keySet()) {
             int[] outgoing = parseOutgoingLinks(url);
 
             int col = urlID.get(url);
@@ -120,6 +119,38 @@ public class PageRank {
         }
     }
 
+    public static void run(int maxIter, double damp)
+    {
+        ConnectToDB.establishConnection();
+
+        dim = ConnectToDB.countAllDocs();
+
+        setup();
+
+        if (ConnectToDB.isPageRankAvailable(dim))
+        {
+            AggregateIterable<Document> result = ConnectToDB.readPageRank();
+            for (Document doc : result)
+            {
+                String url = doc.getString("url");
+                String pr = doc.get("pageRank").toString();
+                double rank = Double.parseDouble(pr);
+                System.out.println(url + " >< " + urlID.get(url));
+//                int idx = urlID.get(url);
+//                pageRank[idx] = rank;
+                pageRank[urlID.get(url)] = rank;
+            }
+        }
+        else
+        {
+            PageRank.fillAdjList();
+            PageRank.normalizeAdjList();
+            PageRank.updateRank(1000, 0.85);
+        }
+
+        ConnectToDB.savePageRank(urlID, pageRank);
+    }
+
     public static double getPageRank(String url)
     {
         return pageRank[urlID.get(url)];
@@ -149,13 +180,7 @@ public class PageRank {
 
     public static void main(String[] args) throws IOException
     {
-        ConnectToDB.establishConnection();
-
-        fillAdjList();
-        normalizeAdjList();
-        visualize();
-        updateRank(100, 0.85);
-
+        run(100, 0.85);
         print();
     }
 }
