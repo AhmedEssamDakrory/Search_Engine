@@ -3,6 +3,7 @@ package main.endpoints.search;
 import com.google.gson.Gson;
 import main.queryprocessor.PersonNameThread;
 import main.queryprocessor.QueryProcessor;
+import main.ranker.Ranker;
 import main.utilities.ConnectToDB;
 
 import javax.servlet.http.HttpServlet;
@@ -11,11 +12,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
-import main.ranker.Ranker;
 
 public abstract class Search<Result> extends HttpServlet implements PersonNameThread.PersonNameListener, SearchResultsWrapper.ResultsDescriber<Result> {
 
-    protected Ranker ranker;
+    Ranker ranker;
     private static final int CACHE_LIMIT = 20;
     private LinkedHashMap<String, SearchResultsWrapper<Result>> cache;
     private boolean supportsPhraseSearch;
@@ -61,7 +61,7 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
         List<Result> allResults;
         List<String> stemmedQueryWords = queryProcessor.process(query);
         if (supportsPhraseSearch && query.length() > 2 && query.startsWith("\"") && query.endsWith("\"")) {
-            allResults = phraseSearch(query.substring(1, query.length() - 1), country, user);
+            allResults = phraseSearch(query.substring(1, query.length() - 1), country, user, stemmedQueryWords);
         } else {
             allResults = rank(stemmedQueryWords, country, user);
         }
@@ -70,7 +70,7 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
         return resultsWrapper;
     }
 
-    public List<Result> phraseSearch(String phrase, String country, String user) {
+    public List<Result> phraseSearch(String phrase, String country, String user, List<String> stemmedQueryWords) {
         return null;
     }
 
