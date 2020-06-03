@@ -10,17 +10,36 @@ import org.bson.Document;
 import java.util.*;
 
 public class Ranker {
+    private static Integer totDocs = null;
+    private static Integer termDocs = null;
+
+    public static void setTotDocs()
+    {
+        totDocs = ConnectToDB.countAllDocs();
+    }
+
+    public static void setTermDocs(String word)
+    {
+        termDocs = ConnectToDB.countTermDocs(word);
+//        termDocs = 0;
+    }
 
     // IDF = log(total no of docs / (1 + docs containing word))
     // TODO: allow for extra metrics in the scoring (country, personality, etc.)
     public static double calcScore(Document doc, String word)
     {
         String score = doc.get("score").toString();
-//        String popularity = doc.get("popularity").toString();
 
-        long totDocs = ConnectToDB.allResultsCount();
-        long searchDocs = ConnectToDB.searchResultsCount(word);
-        double docWeight = Math.log(1.0 * totDocs / (1 + searchDocs));
+        if (totDocs == null)
+        {
+            setTotDocs();
+        }
+        if (termDocs == null)
+        {
+            setTermDocs(word);
+        }
+
+        double docWeight = Math.log(1.0 * totDocs / (1 + termDocs));
 
         return (Double.parseDouble(score) * docWeight);
     }
@@ -30,10 +49,14 @@ public class Ranker {
         HashMap<String, Double> urlScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
 
+        setTotDocs();
+
         for(String word : searchWords)
         {
-            AggregateIterable<Document> result = ConnectToDB.findTextMatches(word);
-            for (Document doc : result)
+            setTermDocs(word);
+
+            AggregateIterable<Document> queryResult = ConnectToDB.findTextMatches(word);
+            for (Document doc : queryResult)
             {
                 results.put(doc.get("url").toString(), doc);
 
@@ -70,19 +93,17 @@ public class Ranker {
         return orderedResults;
     }
 
-    public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
-        int startIndex = (pageNumber - 1) * resultsPerPage;
-        int endIndex = pageNumber * resultsPerPage;
-        return list.subList(startIndex, Math.min(endIndex, list.size()));
-    }
-
     public static List<ImageSearchResult> rankImages(List<String> searchWords)
     {
         HashMap<String, Double> imgScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
 
+        setTotDocs();
+
         for(String word : searchWords)
         {
+            setTermDocs(word);
+
             AggregateIterable<Document> result = ConnectToDB.findImageMatches(word);
             for (Document doc : result)
             {
@@ -121,10 +142,16 @@ public class Ranker {
         return orderedResults;
     }
 
+    public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
+        int startIndex = (pageNumber - 1) * resultsPerPage;
+        int endIndex = pageNumber * resultsPerPage;
+        return list.subList(startIndex, Math.min(endIndex, list.size()));
+    }
+
     public static void main(String[] args)
     {
         ConnectToDB.establishConnection();
-        List<String> tests = Arrays.asList("whit", "hous");
+        List<String> tests = Arrays.asList("house");
 
         List<TextSearchResult> text = page(rankText(tests), 1, 10);
         List<ImageSearchResult> images = page(rankImages(tests), 1, 10);

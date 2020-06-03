@@ -12,6 +12,7 @@ import org.bson.types.ObjectId;
 import java.util.*;
 
 import static com.mongodb.client.model.Aggregates.*;
+import static com.mongodb.client.model.Updates.*;
 
 public class ConnectToDB {
     private static MongoClient mongo;
@@ -64,7 +65,8 @@ public class ConnectToDB {
                 .append("url", url)
                 .append("crawled", false)
                 .append("indexed", false)
-                .append("popularity", 0);
+//                .append("popularity", 0);
+                .append("outgoing", Collections.emptyList());
         collection.insertOne(doc);
     }
 
@@ -185,14 +187,16 @@ public class ConnectToDB {
         Bson unwind1 = unwind("$urls");
         Bson project1 = project(Projections.fields(
                 Projections.computed("url", "$urls.url"),
-                Projections.computed("score", "$urls.score")));
+                Projections.computed("score", "$urls.score")
+        ));
         Bson lookup = lookup("crawler_info", "url", "url", "crawled_info");
         Bson unwind2 = unwind("$crawled_info");
         Bson project2 = project(Projections.fields(
                 Projections.excludeId(),
                 Projections.include("url", "score"),
                 Projections.computed("popularity", "$crawled_info.popularity"),
-                Projections.computed("id", "$crawled_info._id")));
+                Projections.computed("id", "$crawled_info._id")
+        ));
         Bson lookup2 = lookup("forwardIndex", "url", "_id", "title_url");
         Bson unwind3 = unwind("$title_url");
         Bson project3 = project(Projections.fields(
@@ -218,13 +222,13 @@ public class ConnectToDB {
         Bson project2 = project(Projections.fields(
                 Projections.excludeId(),
                 Projections.include("url", "image", "score"),
-                Projections.computed("popularity", "$crawled_info.popularity"),
+//                Projections.computed("rank", "$crawled_info.rank"),
                 Projections.computed("id", "$crawled_info._id")
         ));
         Bson lookup2 = lookup("forwardIndex", "url", "_id", "title_url");
         Bson unwind3 = unwind("$title_url");
         Bson project3 = project(Projections.fields(
-                Projections.include("id", "url", "image", "score", "popularity"),
+                Projections.include("id", "url", "image", "score"),
                 Projections.computed("title", "$title_url.title")
         ));
 
@@ -232,15 +236,72 @@ public class ConnectToDB {
         return imagesIndexCollection.aggregate(pipeline);
     }
     
-    public static long allResultsCount()
+    public static int countAllDocs()
     {
-        return invertedIndexCollection.count();
+        Bson match = Filters.eq("indexed", true);
+        return (int)(crawlerInfoCollection.count(match));
     }
 
-    public static long searchResultsCount(String word)
+    public static int countTermDocs(String word)
     {
-        Bson match = Filters.eq("_d", word);
-        return invertedIndexCollection.count(match);
+        Bson match = match(Filters.eq("_id", word));
+        Bson unwind = unwind("$urls");
+        Bson project = project(Projections.fields(
+                Projections.computed("url", "$urls.url"),
+                Projections.computed("score", "$urls.score")
+        ));
+        Bson count = count();
+
+        List<Bson> pipeline = Arrays.asList(match, unwind, project, count);
+        AggregateIterable<Document> result = invertedIndexCollection.aggregate(pipeline);
+        if (result.first() == null)
+        {
+            return 0;
+        }
+        return Integer.parseInt(result.first().getOrDefault("count", 0).toString());
+    }
+
+    public static AggregateIterable<Document> getAllCrawledData()
+    {
+        Bson match = match(Filters.eq("indexed", true));
+        Bson project = project(Projections.fields(
+                Projections.computed("url", "$url"),
+                Projections.computed("id", "$_id")
+        ));
+
+        List<Bson> pipeline = Arrays.asList(match, project);
+        return crawlerInfoCollection.aggregate(pipeline);
+    }
+
+    public static boolean isUrlIndexed(String url)
+    {
+        Bson find = Filters.eq("url", url);
+        FindIterable<Document> result = crawlerInfoCollection.find(find);
+        if ((result.first() != null) && (!result.first().isEmpty()))
+        {
+            return Boolean.parseBoolean(result.first().getOrDefault("indexed", "false").toString());
+        }
+        return false;
+    }
+
+    public static void addOutgoingLink(String from, String to)
+    {
+        Bson filter = Filters.eq("url", from);
+        Bson update = addToSet("outgoing", to);
+
+        crawlerInfoCollection.updateOne(filter, update);
+    }
+
+    public static AggregateIterable<Document> getOutgoingLinks(String url)
+    {
+        Bson match = match(Filters.eq("url", url));
+        Bson unwind = unwind("outgoing");
+        Bson project = project(Projections.fields(
+                Projections.computed("outlink", "$outgoing")
+        ));
+
+        List<Bson> pipeline = Arrays.asList(match, unwind, project);
+        return crawlerInfoCollection.aggregate(pipeline);
     }
 
     public static void addSuggestion(String suggestion) {
