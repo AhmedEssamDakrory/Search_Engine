@@ -61,7 +61,7 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
         List<Result> allResults;
         List<String> stemmedQueryWords = queryProcessor.process(query);
         if (supportsPhraseSearch && query.length() > 2 && query.startsWith("\"") && query.endsWith("\"")) {
-            allResults = phraseSearch(query.substring(1, query.length() - 1), country, user);
+            allResults = phraseSearch(query.substring(1, query.length() - 1), country, user, stemmedQueryWords);
         } else {
             allResults = rank(stemmedQueryWords, country, user);
         }
@@ -70,7 +70,7 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
         return resultsWrapper;
     }
 
-    public List<Result> phraseSearch(String phrase, String country, String user) {
+    public List<Result> phraseSearch(String phrase, String country, String user, List<String> stemmedQueryWords) {
         return null;
     }
 

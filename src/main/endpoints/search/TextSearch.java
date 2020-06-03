@@ -1,6 +1,7 @@
 package main.endpoints.search;
 
 import main.model.TextSearchResult;
+import main.phraseSearching.PhraseSearch;
 import main.utilities.DescriptionGetter;
 
 import java.util.ArrayList;
@@ -18,8 +19,8 @@ public class TextSearch extends Search<TextSearchResult> {
     }
 
     @Override
-    public List<TextSearchResult> phraseSearch(String phrase, String country, String user) {
-        return super.phraseSearch(phrase, country, user);
+    public List<TextSearchResult> phraseSearch(String phrase, String country, String user, List<String> stemmedQueryWords) {
+        return PhraseSearch.search(ranker, phrase, country, stemmedQueryWords);
     }
 
     @Override
