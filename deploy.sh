@@ -10,7 +10,7 @@ while getopts "apcilr" option; do
 done
 cd ~/Search_Engine
 if [ "$all" == true ] || [ "$pull" == true ]; then
-  git pull
+#  git pull
   # Compile
   find . -name "*.java" -print0 | xargs -0 javac -cp "lib/*":"lib/mongo-driver-3.6.3/*"
   sudo rm -rf /opt/tomcat/webapps/ROOT/WEB-INF/classes/main
@@ -40,5 +40,4 @@ if [ "$all" == true ] || [ "$index" == true ]; then
   java -cp .:"../lib/*" main/indexer/Indexer
 fi
 sudo ufw allow 8080
-sudo chown -R tomcat /opt/tomcat/
 sudo systemctl restart tomcat
