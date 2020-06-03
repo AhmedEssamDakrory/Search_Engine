@@ -13,26 +13,36 @@ import static main.ranker.PageRank.*;
 
 import java.util.*;
 
-public class Ranker {
-    private static Integer totDocs = null;
-    private static Integer termDocs = null;
+import java.net.URL;
+import java.net.MalformedURLException;
 
-    public static void setTotDocs()
+public class Ranker {
+    private Integer totDocs = null;
+    private Integer termDocs = null;
+
+    public Ranker()
+    {
+        PageRank.fillAdjList();
+        PageRank.normalizeAdjList();
+        PageRank.updateRank(1000, 0.85);
+
+        PageRank.print();
+    }
+
+    public void setTotDocs()
     {
         totDocs = ConnectToDB.countAllDocs();
     }
 
-    public static void setTermDocs(String word)
+    public void setTermDocs(String word)
     {
         termDocs = ConnectToDB.countTermDocs(word);
-//        termDocs = 0;
     }
 
     // IDF = log(total no of docs / (1 + docs containing word))
     // TODO: allow for extra metrics in the scoring (country, personality, etc.)
-    public static double calcScore(double score, String url, String word)
-    {
-//        String score = doc.get("score").toString();
+    // userBonus = 1 + (prevVisits(url) / totPrevVisits)
+    public double calcScore(double score, String url, String word, String country) {
 
         if (totDocs == null)
         {
@@ -44,11 +54,22 @@ public class Ranker {
         }
 
         double docWeight = Math.log(1.0 * totDocs / (1 + termDocs));
+        double countryBonus = 1;
 
-        return (score * docWeight * getPageRank(url));
+        try {
+            URL u = new URL(url);
+            if (!(country == null) && country.length() > 1 && u.getHost().endsWith(country)) {
+                countryBonus = 3;
+            }
+        }
+        catch (MalformedURLException e) {
+            System.out.println("Malformed URL: " + e.getMessage());
+        }
+
+        return (score * docWeight * getPageRank(url) * countryBonus);
     }
 
-    public static List<TextSearchResult> rankText(List<String> searchWords)
+    public List<TextSearchResult> rankText(List<String> searchWords, String country)
     {
         HashMap<String, Double> urlScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
@@ -67,7 +88,7 @@ public class Ranker {
                 String url = doc.get("url").toString();
                 double score = Double.parseDouble(doc.get("score").toString());
 
-                Double finalScore = calcScore(score, url, word);
+                Double finalScore = calcScore(score, url, word, country);
 
                 if (urlScore.get(url) == null)
                 {
@@ -99,7 +120,7 @@ public class Ranker {
         return orderedResults;
     }
 
-    public static List<ImageSearchResult> rankImages(List<String> searchWords)
+    public List<ImageSearchResult> rankImages(List<String> searchWords, String country)
     {
         HashMap<String, Double> imgScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
@@ -119,7 +140,7 @@ public class Ranker {
                 String url = doc.get("url").toString();
                 double score = Double.parseDouble(doc.get("score").toString());
 
-                Double finalScore = calcScore(score, url, word);
+                Double finalScore = calcScore(score, url, word, country);
 
                 if (imgScore.get(image) == null)
                 {
@@ -147,7 +168,7 @@ public class Ranker {
             orderedResults.add(tmp);
         }
 
-        orderedResults.sort(Comparator.comparing(SearchResult::getScore).reversed());
+        orderedResults.sort(Comparator.comparing(ImageSearchResult::getScore).reversed());
         return orderedResults;
     }
 
@@ -159,18 +180,16 @@ public class Ranker {
 
     public static void main(String[] args)
     {
+        System.out.println("abd".endsWith(""));
+
         ConnectToDB.establishConnection();
 
-        PageRank.fillAdjList();
-        PageRank.normalizeAdjList();
-        PageRank.updateRank(1000, 0.85);
-
-        PageRank.print();
+        Ranker ranker = new Ranker();
 
         List<String> tests = Arrays.asList("comput", "scienc");
 
-        List<TextSearchResult> text = page(rankText(tests), 1, 10);
-        List<ImageSearchResult> images = page(rankImages(tests), 1, 10);
+        List<TextSearchResult> text = page(ranker.rankText(tests, "blog"), 1, 10);
+        List<ImageSearchResult> images = page(ranker.rankImages(tests, "uk"), 1, 10);
 
         System.out.println("Text:");
         for(TextSearchResult res : text)

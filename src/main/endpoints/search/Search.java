@@ -11,9 +11,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import main.ranker.Ranker;
 
 public abstract class Search<Result> extends HttpServlet implements PersonNameThread.PersonNameListener, SearchResultsWrapper.ResultsDescriber<Result> {
 
+    protected Ranker ranker;
     private static final int CACHE_LIMIT = 20;
     private LinkedHashMap<String, SearchResultsWrapper<Result>> cache;
     private boolean supportsPhraseSearch;
@@ -22,6 +24,7 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
     public Search(boolean supportsPhraseSearch) {
         this.supportsPhraseSearch = supportsPhraseSearch;
         cache = new LinkedHashMap<>();
+        ranker = new Ranker();
         queryProcessor = QueryProcessor.getInstance();
         queryProcessor.loadClassifier();
         ConnectToDB.establishConnection();

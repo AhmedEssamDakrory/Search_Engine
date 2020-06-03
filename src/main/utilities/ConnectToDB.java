@@ -213,8 +213,11 @@ public class ConnectToDB {
                 Projections.computed("title", "$title_url.title")
         ));
         // TODO: icon, description
+//        Bson lookup3 = lookup("users", "url", "")
 
-        List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
+        List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2,
+                lookup2, unwind3, project3
+        );
         return invertedIndexCollection.aggregate(pipeline);
     }
 
