@@ -263,27 +263,15 @@ public class ConnectToDB {
         return Integer.parseInt(result.first().getOrDefault("count", 0).toString());
     }
 
-    public static AggregateIterable<Document> getAllCrawledData()
+    public static AggregateIterable<Document> getAllIndexedData()
     {
         Bson match = match(Filters.eq("indexed", true));
         Bson project = project(Projections.fields(
-                Projections.computed("url", "$url"),
-                Projections.computed("id", "$_id")
+                Projections.include("url")
         ));
 
         List<Bson> pipeline = Arrays.asList(match, project);
         return crawlerInfoCollection.aggregate(pipeline);
-    }
-
-    public static boolean isUrlIndexed(String url)
-    {
-        Bson find = Filters.eq("url", url);
-        FindIterable<Document> result = crawlerInfoCollection.find(find);
-        if ((result.first() != null) && (!result.first().isEmpty()))
-        {
-            return Boolean.parseBoolean(result.first().getOrDefault("indexed", "false").toString());
-        }
-        return false;
     }
 
     public static void addOutgoingLink(String from, String to)
@@ -297,7 +285,7 @@ public class ConnectToDB {
     public static AggregateIterable<Document> getOutgoingLinks(String url)
     {
         Bson match = match(Filters.eq("url", url));
-        Bson unwind = unwind("outgoing");
+        Bson unwind = unwind("$outgoing");
         Bson project = project(Projections.fields(
                 Projections.computed("outlink", "$outgoing")
         ));

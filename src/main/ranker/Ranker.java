@@ -1,11 +1,15 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
-import main.model.ImageSearchResult;
+import org.bson.Document;
+
 import main.model.SearchResult;
 import main.model.TextSearchResult;
+import main.model.ImageSearchResult;
+
 import main.utilities.ConnectToDB;
-import org.bson.Document;
+
+import static main.ranker.PageRank.*;
 
 import java.util.*;
 
@@ -26,9 +30,9 @@ public class Ranker {
 
     // IDF = log(total no of docs / (1 + docs containing word))
     // TODO: allow for extra metrics in the scoring (country, personality, etc.)
-    public static double calcScore(Document doc, String word)
+    public static double calcScore(double score, String url, String word)
     {
-        String score = doc.get("score").toString();
+//        String score = doc.get("score").toString();
 
         if (totDocs == null)
         {
@@ -41,7 +45,7 @@ public class Ranker {
 
         double docWeight = Math.log(1.0 * totDocs / (1 + termDocs));
 
-        return (Double.parseDouble(score) * docWeight);
+        return (score * docWeight * getPageRank(url));
     }
 
     public static List<TextSearchResult> rankText(List<String> searchWords)
@@ -61,7 +65,9 @@ public class Ranker {
                 results.put(doc.get("url").toString(), doc);
 
                 String url = doc.get("url").toString();
-                Double finalScore = calcScore(doc, word);
+                double score = Double.parseDouble(doc.get("score").toString());
+
+                Double finalScore = calcScore(score, url, word);
 
                 if (urlScore.get(url) == null)
                 {
@@ -110,7 +116,10 @@ public class Ranker {
                 results.put(doc.get("image").toString(), doc);
 
                 String image = doc.get("image").toString();
-                Double finalScore = calcScore(doc, word);
+                String url = doc.get("url").toString();
+                double score = Double.parseDouble(doc.get("score").toString());
+
+                Double finalScore = calcScore(score, url, word);
 
                 if (imgScore.get(image) == null)
                 {
@@ -151,7 +160,14 @@ public class Ranker {
     public static void main(String[] args)
     {
         ConnectToDB.establishConnection();
-        List<String> tests = Arrays.asList("house");
+
+        PageRank.fillAdjList();
+        PageRank.normalizeAdjList();
+        PageRank.updateRank(1000, 0.85);
+
+        PageRank.print();
+
+        List<String> tests = Arrays.asList("comput", "scienc");
 
         List<TextSearchResult> text = page(rankText(tests), 1, 10);
         List<ImageSearchResult> images = page(rankImages(tests), 1, 10);

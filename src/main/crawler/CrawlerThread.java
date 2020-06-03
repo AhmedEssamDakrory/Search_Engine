@@ -67,7 +67,7 @@ public class CrawlerThread extends Thread {
 					}
 					this.downloadPage(doc, ConnectToDB.getCrawledUrlID(url));
 					if(!this.stopExtracting) {
-						this.extractLinks(doc);
+						this.extractLinks(url, doc);
 					}
 					ConnectToDB.markUrlAsCrawled(url);
 				}
@@ -107,7 +107,7 @@ public class CrawlerThread extends Thread {
 		return false;
 	}
 	
-	private void extractLinks(Document doc) throws IOException {
+	private void extractLinks(String url, Document doc) throws IOException {
         Elements links = doc.select("a[href]");
         for (Element link : links) {  
             String extractedUrl = link.attr("abs:href");
@@ -120,7 +120,8 @@ public class CrawlerThread extends Thread {
                 }
             	linkedQueue.offer(extractedUrl);
             }
-            ConnectToDB.incUrlsPopularity(extractedUrl);
+            // ConnectToDB.incUrlsPopularity(extractedUrl);
+			ConnectToDB.addOutgoingLink(url, extractedUrl);
         }
         
 	}
