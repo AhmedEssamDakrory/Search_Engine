@@ -5,6 +5,7 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.*;
 import com.mongodb.client.model.*;
+import main.model.Trend;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -13,6 +14,7 @@ import javax.print.Doc;
 import java.util.*;
 
 import static com.mongodb.client.model.Aggregates.*;
+import static com.mongodb.client.model.Updates.*;
 
 public class ConnectToDB {
     private static MongoClient mongo;
@@ -24,6 +26,7 @@ public class ConnectToDB {
     private static MongoCollection<Document> crawlerInfoCollection;
     private static MongoCollection<Document> suggestionsCollection;
     private static MongoCollection<Document> usersCollection;
+    private static MongoCollection<Document> trendsCollection;
 
     public static void establishConnection() {
         if (mongo != null) {
@@ -39,7 +42,7 @@ public class ConnectToDB {
         crawlerInfoCollection = database.getCollection("crawler_info");
         suggestionsCollection = database.getCollection("suggestions");
         usersCollection = database.getCollection("users");
-
+        trendsCollection = database.getCollection("trends");
     }
 
     public static void init() {
@@ -65,7 +68,8 @@ public class ConnectToDB {
                 .append("url", url)
                 .append("crawled", false)
                 .append("indexed", false)
-                .append("popularity", 0);
+//                .append("popularity", 0);
+                .append("outgoing", Collections.emptyList());
         collection.insertOne(doc);
     }
 
@@ -118,7 +122,7 @@ public class ConnectToDB {
             Document doc = new Document()
                     .append("url", url)
                     .append("crawled", false)
-                    .append("visited", false)
+                    .append("indexed", false)
                     .append("popularity", 0);
             ld.add(doc);
         }
@@ -192,14 +196,16 @@ public class ConnectToDB {
         Bson unwind1 = unwind("$urls");
         Bson project1 = project(Projections.fields(
                 Projections.computed("url", "$urls.url"),
-                Projections.computed("score", "$urls.score")));
+                Projections.computed("score", "$urls.score")
+        ));
         Bson lookup = lookup("crawler_info", "url", "url", "crawled_info");
         Bson unwind2 = unwind("$crawled_info");
         Bson project2 = project(Projections.fields(
                 Projections.excludeId(),
                 Projections.include("url", "score"),
                 Projections.computed("popularity", "$crawled_info.popularity"),
-                Projections.computed("id", "$crawled_info._id")));
+                Projections.computed("id", "$crawled_info._id")
+        ));
         Bson lookup2 = lookup("forwardIndex", "url", "_id", "title_url");
         Bson unwind3 = unwind("$title_url");
         Bson project3 = project(Projections.fields(
@@ -225,18 +231,74 @@ public class ConnectToDB {
         Bson project2 = project(Projections.fields(
                 Projections.excludeId(),
                 Projections.include("url", "image", "score"),
-                Projections.computed("popularity", "$crawled_info.popularity"),
+//                Projections.computed("rank", "$crawled_info.rank"),
                 Projections.computed("id", "$crawled_info._id")
         ));
         Bson lookup2 = lookup("forwardIndex", "url", "_id", "title_url");
         Bson unwind3 = unwind("$title_url");
         Bson project3 = project(Projections.fields(
-                Projections.include("id", "url", "image", "score", "popularity"),
+                Projections.include("id", "url", "image", "score"),
                 Projections.computed("title", "$title_url.title")
         ));
 
         List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
         return imagesIndexCollection.aggregate(pipeline);
+    }
+    
+    public static int countAllDocs()
+    {
+        Bson match = Filters.eq("indexed", true);
+        return (int)(crawlerInfoCollection.count(match));
+    }
+
+    public static int countTermDocs(String word)
+    {
+        Bson match = match(Filters.eq("_id", word));
+        Bson unwind = unwind("$urls");
+        Bson project = project(Projections.fields(
+                Projections.computed("url", "$urls.url"),
+                Projections.computed("score", "$urls.score")
+        ));
+        Bson count = count();
+
+        List<Bson> pipeline = Arrays.asList(match, unwind, project, count);
+        AggregateIterable<Document> result = invertedIndexCollection.aggregate(pipeline);
+        if (result.first() == null)
+        {
+            return 0;
+        }
+        return Integer.parseInt(result.first().getOrDefault("count", 0).toString());
+    }
+
+    public static AggregateIterable<Document> getAllIndexedData()
+    {
+        Bson match = match(Filters.eq("indexed", true));
+        Bson project = project(Projections.fields(
+                Projections.include("url")
+        ));
+
+        List<Bson> pipeline = Arrays.asList(match, project);
+        return crawlerInfoCollection.aggregate(pipeline);
+    }
+
+    public static void addOutgoingLink(String from, String to)
+    {
+        Bson filter = Filters.eq("url", from);
+        Bson update = addToSet("outgoing", to);
+
+        crawlerInfoCollection.updateOne(filter, update);
+    }
+
+    public static AggregateIterable<Document> getOutgoingLinks(String url)
+    {
+        Bson match = match(Filters.eq("url", url));
+        Bson unwind = unwind("$outgoing");
+        Bson project = project(Projections.fields(
+                Projections.computed("outlink", "$outgoing")
+        ));
+
+        List<Bson> pipeline = Arrays.asList(match, unwind, project);
+        return crawlerInfoCollection.aggregate(pipeline);
     }
 
     public static void addSuggestion(String suggestion) {
@@ -282,6 +344,37 @@ public class ConnectToDB {
         }
     }
 
+    public static void addPersonToTrends(String country, String name) {
+        Bson filter = new Document("_id", country).append("names.name", name);
+        if (trendsCollection.find(filter).first() == null) {
+            trendsCollection.updateOne(Filters.eq("_id", country),
+                    new Document("$push",
+                            new Document("names",
+                                    new Document("name", name).append("count", 1)
+                            )), new UpdateOptions().upsert(true));
+        } else {
+            trendsCollection.updateOne(filter,
+                    new Document("$inc", new Document("names.$.count", 1)));
+        }
+    }
+
+    public static ArrayList<Trend> getTrends(String country) {
+        ArrayList<Trend> trends = new ArrayList<>();
+        Document document = trendsCollection.find(Filters.eq("_id", country)).first();
+        if (document == null) return trends;
+        ArrayList<Document> persons = (ArrayList<Document>) document.get("names");
+        persons.sort(Comparator.comparing(o -> -o.getInteger("count")));
+        int totalVotes = 0;
+        int size = Math.min(persons.size(), 20);
+        for (int i = 0; i < size; i++)
+            totalVotes += persons.get(i).getInteger("count");
+        for (int i = 0; i < size; i++) {
+            Document person = persons.get(i);
+            trends.add(new Trend(person.getString("name"), 100 * person.getInteger("count") / totalVotes));
+        }
+        return trends;
+    }
+
     public static AggregateIterable<Document> getURLsDescriptions(List<String> urls, List<String> query, HashMap<String, String[]> descriptions){
         FindIterable<Document> descript = forwardIndexCollection.find(Filters.in("_id", urls));
         for (Document doc: descript){
@@ -305,6 +398,7 @@ public class ConnectToDB {
         );
         return invertedIndexCollection.aggregate(pipeline);
     }
+
     public static void clearDB() {
         //***************** drop all collections**********************
         dropCrawlerCollections();
@@ -312,6 +406,7 @@ public class ConnectToDB {
         imagesIndexCollection.drop();
         suggestionsCollection.drop();
         usersCollection.drop();
+        trendsCollection.drop();
     }
 
     public static void closeConnection() {

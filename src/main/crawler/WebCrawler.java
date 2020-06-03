@@ -39,7 +39,7 @@ public class WebCrawler {
 			System.out.println("Crawling for the first time...");
 			File file = new File(Constants.CRAWLING_SEEDER_FILE);
 			BufferedReader br = new BufferedReader(new FileReader(file)); 
-			String st; 
+			String st;
 			while ((st = br.readLine()) != null) {
 				linkedQueue.offer(st);
 				seeders.add(st);
@@ -100,7 +100,7 @@ public class WebCrawler {
 		double totalTime = (endTime - startTime)* (1e-9);
 		System.out.println("finished");
 		System.out.println(totalTime);
-		
+
 	}
 
 }

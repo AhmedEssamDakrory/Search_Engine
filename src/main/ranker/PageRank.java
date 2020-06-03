@@ -1,42 +1,100 @@
 package main.ranker;
 
+import com.mongodb.client.AggregateIterable;
+import main.crawler.UrlNormalizer;
+import main.utilities.ConnectToDB;
+import main.utilities.Constants;
+import org.bson.Document;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+
 public class PageRank {
-    protected int dim;
-    protected double[][] adjList;
-    protected double[] pageRank;
+    protected static int dim;
+    protected static double[][] adjList;
+    protected static double[] pageRank;
+    protected static HashMap<String, Integer> urlID = new HashMap<>();
 
-    public PageRank(int m)
+    private static int[] parseOutgoingLinks(String url)
     {
-        dim = m;
-        adjList = new double[m][m];
-        pageRank = new double[m];
-    }
+        int[] outgoing = new int[dim];
 
-    // returns whether the filling process was successful or not
-    public boolean fillAdjList(double[][] data)
-    {
-        if (data.length != dim)
+        AggregateIterable<Document> outLinks = ConnectToDB.getOutgoingLinks(url);
+
+        for (Document doc : outLinks)
         {
-            return false;
-        }
-        for (int i = 0; i < dim; ++i) {
-            if (data[i].length != adjList[i].length)
+            String to = doc.get("outlink").toString();
+
+            Integer row = urlID.get(to);
+            if (row != null && !url.equals(to))
             {
-                return false;
+                outgoing[row] = 1;
             }
-            System.arraycopy(data[i], 0, adjList[i], 0, dim);
         }
-        return true;
+
+        return outgoing;
     }
 
-    public double[] updateRank(Integer maxIter, Double damp)
+    public static void fillAdjList()
     {
-        if (maxIter == null)
+        dim = ConnectToDB.countAllDocs();
+        adjList = new double[dim][dim];
+        pageRank = new double[dim];
+
+        AggregateIterable<org.bson.Document> allDocs = ConnectToDB.getAllIndexedData();
+        List<String> urlsList = new ArrayList<>();
+        for (org.bson.Document doc : allDocs)
         {
+            String url = doc.get("url").toString();
+
+            urlsList.add(url);
+
+            if (urlID.get(url) == null)
+            {
+                urlID.put(url, urlID.size());
+            }
+        }
+
+        for (String url : urlsList) {
+            int[] outgoing = parseOutgoingLinks(url);
+
+            int col = urlID.get(url);
+
+            for (int row = 0; row < dim; row++) {
+                adjList[row][col] = outgoing[row];
+            }
+        }
+    }
+
+    public static void normalizeAdjList()
+    {
+        for (int i = 0; i < dim; i++)
+        {
+            double sum = 0;
+            for (int j = 0; j < dim; j++)
+            {
+                sum += adjList[j][i];
+            }
+            System.out.println(sum);
+            if (sum > 0.5)
+            {
+                for (int j = 0; j < dim; j++)
+                {
+                    adjList[j][i] = 1.0 * adjList[j][i] / sum;
+                }
+            }
+        }
+    }
+
+    public static void updateRank(Integer maxIter, Double damp) {
+        if (maxIter == null) {
             maxIter = 100;
         }
-        if (damp == null)
-        {
+        if (damp == null) {
             damp = 0.85;
         }
 
@@ -47,13 +105,11 @@ public class PageRank {
             }
         }
 
-        for (int i = 0; i < dim; ++i)
-        {
+        for (int i = 0; i < dim; ++i) {
             pageRank[i] = 1.0 / dim;
         }
         double[] tmp = new double[dim];
-        for (int k = 0; k < maxIter; ++k)
-        {
+        for (int k = 0; k < maxIter; ++k) {
             for (int i = 0; i < dim; ++i) {
                 tmp[i] = 0;
                 for (int j = 0; j < dim; ++j) {
@@ -62,40 +118,44 @@ public class PageRank {
             }
             System.arraycopy(tmp, 0, pageRank, 0, dim);
         }
-        return pageRank;
     }
 
-    public void print()
+    public static double getPageRank(String url)
     {
+        return pageRank[urlID.get(url)];
+    }
+
+    public static void print()
+    {
+        System.out.println("Dimension: " + dim);
         double sum = 0;
         for (int i = 0; i < dim; i++) {
             System.out.println(pageRank[i]);
             sum += pageRank[i];
         }
-        System.out.println(sum);
+        System.out.println("Sum= " + sum);
     }
 
-    public static void main(String[] args)
+    public static void visualize()
     {
-        PageRank pr = new PageRank(5);
-
-        double[][] data = {{0, 0, 0, 0, 1}, {0.5, 0, 0, 0, 0}, {0.5, 0, 0, 0, 0}, {0, 1, 0.5, 0, 0}, {0, 0, 0.5, 1, 0}};
-        if (!pr.fillAdjList(data))
-        {
-            System.out.println("Failed to fill adjacency list");
-        }
-        else
-        {
-            double[] finalRank = pr.updateRank(100, 0.85);
-
-            double sum = 0;
-            for (double v : finalRank) {
-                System.out.println(v);
-                sum += v;
+        System.out.println("Dimension: " + dim);
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < dim; j++) {
+                System.out.print(adjList[i][j] + " ");
             }
-            System.out.println(sum);
-
-            pr.print();
+            System.out.println();
         }
+    }
+
+    public static void main(String[] args) throws IOException
+    {
+        ConnectToDB.establishConnection();
+
+        fillAdjList();
+        normalizeAdjList();
+        visualize();
+        updateRank(100, 0.85);
+
+        print();
     }
 }

@@ -1,41 +1,73 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
-import main.model.ImageSearchResult;
+import org.bson.Document;
+
 import main.model.SearchResult;
 import main.model.TextSearchResult;
+import main.model.ImageSearchResult;
+
 import main.utilities.ConnectToDB;
-import org.bson.Document;
+
+import static main.ranker.PageRank.*;
 
 import java.util.*;
 
 public class Ranker {
+    private static Integer totDocs = null;
+    private static Integer termDocs = null;
 
-    public static Double calcScore(Document doc)
+    public static void setTotDocs()
     {
-        String score = doc.get("score").toString();
-        String popularity = doc.get("popularity").toString();
-
-        return (Double.parseDouble(score));
-//         * Integer.parseInt(popularity)
+        totDocs = ConnectToDB.countAllDocs();
     }
 
-    // TODO: calculate IDF = log(total no of docs / (1 + docs containing word)
+    public static void setTermDocs(String word)
+    {
+        termDocs = ConnectToDB.countTermDocs(word);
+//        termDocs = 0;
+    }
+
+    // IDF = log(total no of docs / (1 + docs containing word))
     // TODO: allow for extra metrics in the scoring (country, personality, etc.)
+    public static double calcScore(double score, String url, String word)
+    {
+//        String score = doc.get("score").toString();
+
+        if (totDocs == null)
+        {
+            setTotDocs();
+        }
+        if (termDocs == null)
+        {
+            setTermDocs(word);
+        }
+
+        double docWeight = Math.log(1.0 * totDocs / (1 + termDocs));
+
+        return (score * docWeight * getPageRank(url));
+    }
+
     public static List<TextSearchResult> rankText(List<String> searchWords)
     {
         HashMap<String, Double> urlScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
 
+        setTotDocs();
+
         for(String word : searchWords)
         {
-            AggregateIterable<Document> result = ConnectToDB.findTextMatches(word);
-            for (Document doc : result)
+            setTermDocs(word);
+
+            AggregateIterable<Document> queryResult = ConnectToDB.findTextMatches(word);
+            for (Document doc : queryResult)
             {
                 results.put(doc.get("url").toString(), doc);
 
                 String url = doc.get("url").toString();
-                Double finalScore = calcScore(doc);
+                double score = Double.parseDouble(doc.get("score").toString());
+
+                Double finalScore = calcScore(score, url, word);
 
                 if (urlScore.get(url) == null)
                 {
@@ -67,26 +99,27 @@ public class Ranker {
         return orderedResults;
     }
 
-    public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
-        int startIndex = (pageNumber - 1) * resultsPerPage;
-        int endIndex = pageNumber * resultsPerPage;
-        return list.subList(startIndex, Math.min(endIndex, list.size()));
-    }
-
     public static List<ImageSearchResult> rankImages(List<String> searchWords)
     {
         HashMap<String, Double> imgScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
 
+        setTotDocs();
+
         for(String word : searchWords)
         {
+            setTermDocs(word);
+
             AggregateIterable<Document> result = ConnectToDB.findImageMatches(word);
             for (Document doc : result)
             {
                 results.put(doc.get("image").toString(), doc);
 
                 String image = doc.get("image").toString();
-                Double finalScore = calcScore(doc);
+                String url = doc.get("url").toString();
+                double score = Double.parseDouble(doc.get("score").toString());
+
+                Double finalScore = calcScore(score, url, word);
 
                 if (imgScore.get(image) == null)
                 {
@@ -109,6 +142,7 @@ public class Ranker {
             String image = doc.get("image").toString();
             String title = doc.get("title").toString();
             Double score = imgScore.get(image);
+
             ImageSearchResult tmp = new ImageSearchResult(id, image, pageUrl, title, score);
             orderedResults.add(tmp);
         }
@@ -117,10 +151,23 @@ public class Ranker {
         return orderedResults;
     }
 
+    public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
+        int startIndex = (pageNumber - 1) * resultsPerPage;
+        int endIndex = pageNumber * resultsPerPage;
+        return list.subList(startIndex, Math.min(endIndex, list.size()));
+    }
+
     public static void main(String[] args)
     {
         ConnectToDB.establishConnection();
-        List<String> tests = Arrays.asList("cairo");
+
+        PageRank.fillAdjList();
+        PageRank.normalizeAdjList();
+        PageRank.updateRank(1000, 0.85);
+
+        PageRank.print();
+
+        List<String> tests = Arrays.asList("comput", "scienc");
 
         List<TextSearchResult> text = page(rankText(tests), 1, 10);
         List<ImageSearchResult> images = page(rankImages(tests), 1, 10);

@@ -72,4 +72,13 @@
         <url-pattern>/click</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>Trends</servlet-name>
+        <servlet-class>main.endpoints.Trends</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>Trends</servlet-name>
+        <url-pattern>/trends</url-pattern>
+    </servlet-mapping>
+
 </web-app>
