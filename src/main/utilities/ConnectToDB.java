@@ -39,7 +39,7 @@ public class ConnectToDB {
         crawlerInfoCollection = database.getCollection("crawler_info");
         suggestionsCollection = database.getCollection("suggestions");
         usersCollection = database.getCollection("users");
-
+        trendsCollection = database.getCollection("trends");
     }
 
     public static void init() {
@@ -308,6 +308,7 @@ public class ConnectToDB {
         imagesIndexCollection.drop();
         suggestionsCollection.drop();
         usersCollection.drop();
+        trendsCollection.drop();
     }
 
     public static void closeConnection() {
