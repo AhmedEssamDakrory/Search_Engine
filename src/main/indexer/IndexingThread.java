@@ -44,12 +44,26 @@ public class IndexingThread implements Runnable {
                 processElement(tagText, score, wordScores);
             }
         }
-        Integer totalScore = 0;
-        for (Integer score : wordScores.values()) {
-            totalScore += score;
-        }
         if (title.isEmpty()) title = url;
-        ConnectToDB.pushToDatabase(url, title, wordScores, totalScore);
+
+        Integer totalScore = 0;
+        String plainText = document.text();
+        plainText = plainText.toLowerCase();
+        plainText = plainText.replaceAll("[^0-9a-zA-Z]", " ");
+        String[] words = plainText.split(" ");
+        QueryProcessor q = QueryProcessor.getInstance();
+        for (int i=0; i<words.length; i++){
+            String stemmedWord = q.processWord(words[i]);
+            if (stemmedWord == null) continue;
+            Integer val = wordScores.getOrDefault(stemmedWord, null);
+            if (val == null) continue;
+            if (val / Constants.MAX_SCORE == 0){
+                val += (i+1) * Constants.MAX_SCORE;
+                totalScore += wordScores.get(stemmedWord);
+            }
+            wordScores.put(stemmedWord, val);
+        }
+        ConnectToDB.pushToDatabase(url, document.text(), title, wordScores, totalScore);
 
         //---------Process Images----------
         List<Map.Entry<String, Integer>> wordsSorted =
@@ -99,20 +113,8 @@ public class IndexingThread implements Runnable {
     }
 
     public static void main(String[] args) {
-        List<Map.Entry<String, Integer>> wordsSorted =
-                new LinkedList<Map.Entry<String, Integer>>(Constants.SCORES.entrySet());
-
-        // Sort the list
-        Collections.sort(wordsSorted, new Comparator<Map.Entry<String, Integer>>() {
-            public int compare(Map.Entry<String, Integer> o1,
-                               Map.Entry<String, Integer> o2) {
-                return -(o1.getValue()).compareTo(o2.getValue());
-            }
-        });
-
-        for (Map.Entry<String, Integer> word : wordsSorted) {
-            System.out.println(word.getKey() + " " + word.getValue());
-        }
+        QueryProcessor q = QueryProcessor.getInstance();
+        System.out.println(q.stem("community"));
     }
 
     public static Integer processImage(Element image, HashMap<String, Integer> imageScore) {

@@ -10,6 +10,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
+import javax.print.Doc;
 import java.util.*;
 
 import static com.mongodb.client.model.Aggregates.*;
@@ -134,20 +135,26 @@ public class ConnectToDB {
     }
 
     //---------Indexer---------
-    public static void pushToDatabase(String url, String title, HashMap<String, Integer> words, Integer totalScore) {
+    public static void pushToDatabase(String url, String plainText, String title, HashMap<String, Integer> words, Integer totalScore) {
         removeUrlFromDatabase(url);
         for (String word : words.keySet()) {
-            float score = (float) words.get(word) / totalScore;
+            Integer idx_score = words.get(word);
+            Integer index = idx_score / Constants.MAX_SCORE;
+            if (index == 0) {
+                continue;
+            }
+            float score = (float) (idx_score % Constants.MAX_SCORE) / totalScore;
             invertedIndexCollection.updateOne(Filters.eq("_id", word),
 
                     new org.bson.Document("$push", new org.bson.Document("urls",
-                            new org.bson.Document("url", url).append("score", score))),
+                            new org.bson.Document("url", url)
+                                    .append("score", score).append("index", index-1))),
 
                     new UpdateOptions().upsert(true));
         }
 
         forwardIndexCollection.updateOne(Filters.eq("_id", url),
-                Updates.set("title", title),
+                Updates.combine(Updates.set("text", plainText), Updates.set("title", title)),
                 new UpdateOptions().upsert(true));
 
         crawlerInfoCollection.updateOne(Filters.eq("url", url),
@@ -371,6 +378,29 @@ public class ConnectToDB {
         return trends;
     }
 
+    public static AggregateIterable<Document> getURLsDescriptions(List<String> urls, List<String> query, HashMap<String, String[]> descriptions){
+        FindIterable<Document> descript = forwardIndexCollection.find(Filters.in("_id", urls));
+        for (Document doc: descript){
+            String d = doc.getString("text");
+            d = d.replaceAll("[^0-9a-zA-Z]", " ");
+            String[] words = d.split(" ");
+            descriptions.put(doc.getString("_id"), words);
+        }
+
+        Bson match1 = match(Filters.in("_id", query));
+        Bson unwind = unwind("$urls");
+        Bson match2 = match(Filters.in("urls.url", urls));
+        Bson project = project(Projections.fields(
+                Projections.computed("url", "$urls.url"),
+                Projections.computed("index", "$urls.index")
+        ));
+        Bson sorting = sort(Sorts.ascending("url", "index"));
+        List<Bson> pipeline = Arrays.asList(match1, unwind, match2, project
+                , sorting
+        );
+        return invertedIndexCollection.aggregate(pipeline);
+    }
+
     public static void clearDB() {
         //***************** drop all collections**********************
         dropCrawlerCollections();
@@ -387,5 +417,4 @@ public class ConnectToDB {
 
     public static void main(String[] args) {
     }
-
 }

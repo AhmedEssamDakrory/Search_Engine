@@ -12,7 +12,7 @@ cd ~/Search_Engine
 if [ "$all" == true ] || [ "$pull" == true ]; then
   git pull
   # Compile
-  javac -cp "lib/*":"lib/mongo-driver-3.6.3/*" src/main/*/*.java
+  find . -name "*.java" -print0 | xargs -0 javac -cp "lib/*":"lib/mongo-driver-3.6.3/*"
   sudo rm -rf /opt/tomcat/webapps/ROOT/WEB-INF/classes/main
   sudo cp -r src/main/ /opt/tomcat/webapps/ROOT/WEB-INF/classes
   sudo cp -r data/web.xml /opt/tomcat/webapps/ROOT/WEB-INF/

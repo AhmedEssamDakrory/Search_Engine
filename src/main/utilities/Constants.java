@@ -16,6 +16,8 @@ public class Constants {
 	public static final String DATABASE_NAME = "search_engine";
 	public static final Integer EXTRA_IMAGE_WORDS = 10;
 	public static final Integer CAPTION_SCORE = 100;
+	public static final Integer MAX_SCORE = 1000;
+	public static final Integer DESCRIPTION_RANGE = 10;
 	public static final HashMap<String, Integer> SCORES = new HashMap<String, Integer>(){
 		{
 			put("title", 20);

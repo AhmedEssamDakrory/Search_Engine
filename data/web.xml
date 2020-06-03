@@ -29,7 +29,7 @@
 
     <servlet>
         <servlet-name>TextSearch</servlet-name>
-        <servlet-class>main.endpoints.TextSearch</servlet-class>
+        <servlet-class>main.endpoints.search.TextSearch</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>TextSearch</servlet-name>
@@ -38,7 +38,7 @@
 
     <servlet>
         <servlet-name>ImageSearch</servlet-name>
-        <servlet-class>main.endpoints.ImageSearch</servlet-class>
+        <servlet-class>main.endpoints.search.ImageSearch</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>ImageSearch</servlet-name>
