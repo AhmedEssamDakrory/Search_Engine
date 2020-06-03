@@ -5,6 +5,7 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.*;
 import com.mongodb.client.model.*;
+import main.model.Trend;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -232,14 +233,12 @@ public class ConnectToDB {
         List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
         return imagesIndexCollection.aggregate(pipeline);
     }
-    
-    public static long allResultsCount()
-    {
+
+    public static long allResultsCount() {
         return invertedIndexCollection.count();
     }
 
-    public static long searchResultsCount(String word)
-    {
+    public static long searchResultsCount(String word) {
         Bson match = Filters.eq("_d", word);
         return invertedIndexCollection.count(match);
     }
@@ -299,6 +298,23 @@ public class ConnectToDB {
             trendsCollection.updateOne(filter,
                     new Document("$inc", new Document("names.$.count", 1)));
         }
+    }
+
+    public static ArrayList<Trend> getTrends(String country) {
+        ArrayList<Trend> trends = new ArrayList<>();
+        Document document = trendsCollection.find(Filters.eq("_id", country)).first();
+        if (document == null) return trends;
+        ArrayList<Document> persons = (ArrayList<Document>) document.get("names");
+        persons.sort(Comparator.comparing(o -> -o.getInteger("count")));
+        int totalVotes = 0;
+        int size = Math.min(persons.size(), 20);
+        for (int i = 0; i < size; i++)
+            totalVotes += persons.get(i).getInteger("count");
+        for (int i = 0; i < size; i++) {
+            Document person = persons.get(i);
+            trends.add(new Trend(person.getString("name"), 100 * person.getInteger("count") / totalVotes));
+        }
+        return trends;
     }
 
     public static void clearDB() {
