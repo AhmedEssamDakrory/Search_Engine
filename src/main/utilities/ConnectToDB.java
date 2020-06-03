@@ -10,7 +10,6 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
-import javax.print.Doc;
 import java.util.*;
 
 import static com.mongodb.client.model.Aggregates.*;

@@ -22,12 +22,12 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
     private QueryProcessor queryProcessor;
 
     public Search(boolean supportsPhraseSearch) {
+        ConnectToDB.establishConnection();
         this.supportsPhraseSearch = supportsPhraseSearch;
         cache = new LinkedHashMap<>();
         ranker = new Ranker();
         queryProcessor = QueryProcessor.getInstance();
         queryProcessor.loadClassifier();
-        ConnectToDB.establishConnection();
     }
 
     public Search() {
