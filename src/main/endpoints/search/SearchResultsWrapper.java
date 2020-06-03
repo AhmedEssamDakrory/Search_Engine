@@ -25,9 +25,9 @@ public class SearchResultsWrapper<Result> {
         int startIndex = (pageNumber - 1) * resultsPerPage;
         int endIndex = pageNumber * resultsPerPage;
         List<Result> pageResults = results.subList(startIndex, Math.min(endIndex, results.size()));
-        if (describedBefore[pageNumber]) return pageResults;
+        if (describedBefore[pageNumber - 1]) return pageResults;
         describer.describe(pageResults, stemmedQueryWords);
-        describedBefore[pageNumber] = true;
+        describedBefore[pageNumber - 1] = true;
         return pageResults;
     }
 
