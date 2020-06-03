@@ -2,7 +2,9 @@ package main.endpoints.search;
 
 import main.model.TextSearchResult;
 import main.ranker.Ranker;
+import main.utilities.DescriptionGetter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TextSearch extends Search<TextSearchResult> {
@@ -22,6 +24,12 @@ public class TextSearch extends Search<TextSearchResult> {
     }
 
     @Override
-    public void describe(List<TextSearchResult> textSearchResults) {
+    public void describe(List<TextSearchResult> results, List<String> stemmedQueryWords) {
+        ArrayList<String> urls = new ArrayList<>(results.size());
+        for (TextSearchResult result : results)
+            urls.add(result.getUrl());
+        List<String> descriptions = DescriptionGetter.getDescriptions(urls, stemmedQueryWords);
+        for (int i = 0; i < urls.size(); i++)
+            results.get(i).setDescription(descriptions.get(i));
     }
 }

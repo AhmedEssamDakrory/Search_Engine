@@ -12,6 +12,6 @@ public class ImageSearch extends Search<ImageSearchResult> {
     }
 
     @Override
-    public void describe(List<ImageSearchResult> imageSearchResults) {
+    public void describe(List<ImageSearchResult> imageSearchResults, List<String> stemmedQueryWords) {
     }
 }

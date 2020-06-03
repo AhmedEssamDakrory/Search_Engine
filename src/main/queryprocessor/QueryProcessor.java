@@ -55,16 +55,11 @@ public class QueryProcessor {
         }
         return processedQuery;
     }
+
     public String processWord(String word) {
-        String result;
         if (word.trim().isEmpty() || stopWords.contains(word))
             return null;
-        try {
-            result = stem(word);
-        } catch (java.lang.ArrayIndexOutOfBoundsException e) {
-            return null;
-        }
-        return result;
+        return stem(word);
     }
 
     public void extractPersonName(String country, String query, PersonNameThread.PersonNameListener listener) {

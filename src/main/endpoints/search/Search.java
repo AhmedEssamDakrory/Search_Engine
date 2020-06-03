@@ -56,12 +56,13 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
         if (cache.size() >= CACHE_LIMIT)
             cache.remove(cache.entrySet().iterator().next().getKey());
         List<Result> allResults;
+        List<String> stemmedQueryWords = queryProcessor.process(query);
         if (supportsPhraseSearch && query.length() > 2 && query.startsWith("\"") && query.endsWith("\"")) {
             allResults = phraseSearch(query.substring(1, query.length() - 1), country, user);
         } else {
-            allResults = rank(queryProcessor.process(query), country, user);
+            allResults = rank(stemmedQueryWords, country, user);
         }
-        SearchResultsWrapper<Result> resultsWrapper = new SearchResultsWrapper<>(allResults, this);
+        SearchResultsWrapper<Result> resultsWrapper = new SearchResultsWrapper<>(allResults, stemmedQueryWords, this);
         cache.put(key, resultsWrapper);
         return resultsWrapper;
     }
