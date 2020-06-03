@@ -9,6 +9,6 @@ public class TextSearch extends Search<TextSearchResult> {
 
     @Override
     public List<TextSearchResult> rank(List<String> words, String country, String user) {
-        return Ranker.rankText(words);
+        return ranker.rankText(words, country);
     }
 }

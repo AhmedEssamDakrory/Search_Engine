@@ -15,12 +15,14 @@ import java.util.List;
 
 public abstract class Search<Result> extends HttpServlet implements PersonNameThread.PersonNameListener {
 
+    protected Ranker ranker;
     private static final int CACHE_LIMIT = 20;
     private LinkedHashMap<String, List<Result>> cache;
 
     public Search() {
         ConnectToDB.establishConnection();
         cache = new LinkedHashMap<>();
+        ranker = new Ranker();
     }
 
     @Override
