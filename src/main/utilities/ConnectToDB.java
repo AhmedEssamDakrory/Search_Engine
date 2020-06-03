@@ -10,6 +10,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
+import javax.print.Doc;
 import java.util.*;
 
 import static com.mongodb.client.model.Aggregates.*;
@@ -134,20 +135,26 @@ public class ConnectToDB {
     }
 
     //---------Indexer---------
-    public static void pushToDatabase(String url, String title, HashMap<String, Integer> words, Integer totalScore) {
+    public static void pushToDatabase(String url, String plainText, String title, HashMap<String, Integer> words, Integer totalScore) {
         removeUrlFromDatabase(url);
         for (String word : words.keySet()) {
-            float score = (float) words.get(word) / totalScore;
+            Integer idx_score = words.get(word);
+            Integer index = idx_score / Constants.MAX_SCORE;
+            if (index == 0) {
+                continue;
+            }
+            float score = (float) (idx_score % Constants.MAX_SCORE) / totalScore;
             invertedIndexCollection.updateOne(Filters.eq("_id", word),
 
                     new org.bson.Document("$push", new org.bson.Document("urls",
-                            new org.bson.Document("url", url).append("score", score))),
+                            new org.bson.Document("url", url)
+                                    .append("score", score).append("index", index-1))),
 
                     new UpdateOptions().upsert(true));
         }
 
         forwardIndexCollection.updateOne(Filters.eq("_id", url),
-                Updates.set("title", title),
+                Updates.combine(Updates.set("text", plainText), Updates.set("title", title)),
                 new UpdateOptions().upsert(true));
 
         crawlerInfoCollection.updateOne(Filters.eq("url", url),
@@ -263,27 +270,15 @@ public class ConnectToDB {
         return Integer.parseInt(result.first().getOrDefault("count", 0).toString());
     }
 
-    public static AggregateIterable<Document> getAllCrawledData()
+    public static AggregateIterable<Document> getAllIndexedData()
     {
         Bson match = match(Filters.eq("indexed", true));
         Bson project = project(Projections.fields(
-                Projections.computed("url", "$url"),
-                Projections.computed("id", "$_id")
+                Projections.include("url")
         ));
 
         List<Bson> pipeline = Arrays.asList(match, project);
         return crawlerInfoCollection.aggregate(pipeline);
-    }
-
-    public static boolean isUrlIndexed(String url)
-    {
-        Bson find = Filters.eq("url", url);
-        FindIterable<Document> result = crawlerInfoCollection.find(find);
-        if ((result.first() != null) && (!result.first().isEmpty()))
-        {
-            return Boolean.parseBoolean(result.first().getOrDefault("indexed", "false").toString());
-        }
-        return false;
     }
 
     public static void addOutgoingLink(String from, String to)
@@ -297,7 +292,7 @@ public class ConnectToDB {
     public static AggregateIterable<Document> getOutgoingLinks(String url)
     {
         Bson match = match(Filters.eq("url", url));
-        Bson unwind = unwind("outgoing");
+        Bson unwind = unwind("$outgoing");
         Bson project = project(Projections.fields(
                 Projections.computed("outlink", "$outgoing")
         ));
@@ -380,6 +375,30 @@ public class ConnectToDB {
         return trends;
     }
 
+    public static AggregateIterable<Document> getURLsDescriptions(List<String> urls, List<String> query, HashMap<String, String[]> descriptions){
+        FindIterable<Document> descript = forwardIndexCollection.find(Filters.in("_id", urls));
+        for (Document doc: descript){
+            String d = doc.getString("text");
+            d = d.replaceAll("[^0-9a-zA-Z]", " ");
+            String[] words = d.split(" ");
+            descriptions.put(doc.getString("_id"), words);
+        }
+
+        Bson match1 = match(Filters.in("_id", query));
+        Bson unwind = unwind("$urls");
+        Bson match2 = match(Filters.in("urls.url", urls));
+        Bson project = project(Projections.fields(
+                Projections.include("_id"),
+                Projections.computed("url", "$urls.url"),
+                Projections.computed("index", "$urls.index")
+        ));
+        Bson sorting = sort(Sorts.ascending("url", "index"));
+        List<Bson> pipeline = Arrays.asList(match1, unwind, match2, project
+                , sorting
+        );
+        return invertedIndexCollection.aggregate(pipeline);
+    }
+
     public static void clearDB() {
         //***************** drop all collections**********************
         dropCrawlerCollections();
@@ -395,6 +414,45 @@ public class ConnectToDB {
     }
 
     public static void main(String[] args) {
+        establishConnection();
+        ArrayList<String> urls = new ArrayList<String>();
+        ArrayList<String> words = new ArrayList<String>();
+        urls.add("https://stackoverflow.com");
+        urls.add("https://stackoverflow.com/teams/create");
+        words.add("free");
+        words.add("code");
+        HashMap<String, String[]> plainText  = new HashMap<>();
+        AggregateIterable<Document> result = getURLsDescriptions(urls, words, plainText);
+        HashMap<String, Vector<Integer>> site = new HashMap<>();
+        HashMap<String, String> descriptions = new HashMap<>();
+        for (Document doc: result){
+            String word = doc.getString("_id");
+            String url = doc.getString("url");
+            Integer index = doc.getInteger("index");
+            if (!site.containsKey(url)) site.put(url, new Vector<Integer>());
+            site.get(url).add(index);
+        }
+        for (String url: site.keySet()){
+            Vector<Integer> s = site.get(url);
+            StringBuilder descript = new StringBuilder();
+            int r = -1;
+            for (int i=0; i<s.size(); i++){
+                int idx = s.get(i);
+                if (r >= idx) continue;
+                int l = Math.max(idx - Constants.DESCRIPTION_RANGE / 2, 0);
+                r = Math.min(l + Constants.DESCRIPTION_RANGE, plainText.get(url).length - 1);
+                System.out.println(l + " " + r);
+                for (int j = l; j<=r; j++){
+                    descript.append(plainText.get(url)[j]).append(" ");
+                }
+                descript.append("...");
+            }
+            descriptions.put(url, descript.toString());
+        }
+        for (String d: descriptions.values()){
+            System.out.println(d);
+        }
     }
+
 
 }
