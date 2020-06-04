@@ -90,7 +90,7 @@ public class Ranker {
                 countryBonus = 3;
             }
             if (userHist.get(u.getHost()) != null) {
-                historyBonus = 1 + userHist.get(url);
+                historyBonus = 1 + userHist.get(u.getHost());
             }
         }
 
