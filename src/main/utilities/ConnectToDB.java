@@ -1,5 +1,6 @@
 package main.utilities;
 
+import com.mongodb.MapReduceCommand;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCommandException;
@@ -351,6 +352,19 @@ public class ConnectToDB {
 
         List<Bson> pipeline = Arrays.asList(match, project);
         return forwardIndexCollection.aggregate(pipeline);
+    }
+
+    public static AggregateIterable<Document> getUserData(String user)
+    {
+        Bson match = match(Filters.eq("_id", new ObjectId(user)));
+        Bson unwind = unwind("$urls");
+        Bson project = project(Projections.fields(
+                Projections.excludeId(),
+                Projections.computed("url", "$urls.url"),
+                Projections.computed("count", "$urls.count")
+        ));
+        List<Bson> pipeline = Arrays.asList(match, unwind, project);
+        return usersCollection.aggregate(pipeline);
     }
 
     public static void addSuggestion(String suggestion) {

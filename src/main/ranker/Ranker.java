@@ -19,6 +19,7 @@ import java.net.MalformedURLException;
 public class Ranker {
     private Integer totDocs = null;
     private Integer termDocs = null;
+    private HashMap<String, Double> userHist;
 
     public Ranker()
     {
@@ -37,8 +38,42 @@ public class Ranker {
         termDocs = ConnectToDB.countTermDocs(word);
     }
 
+    public void getUserHistory(String user)
+    {
+        userHist = new HashMap<>();
+
+        if (user == null)
+        {
+            return;
+        }
+
+        AggregateIterable<Document> result = ConnectToDB.getUserData(user);
+        int sum = 0;
+        System.out.println("Before loop: " + result.first());
+        for (Document doc : result)
+        {
+            System.out.println("\n" + doc);
+
+            String url = doc.get("url").toString();
+            String count = doc.get("count").toString();
+
+            System.out.println("URL= " + url);
+            System.out.println("Count= " + count);
+            double value = Double.parseDouble(count);
+            sum += value;
+            userHist.put(url, value);
+        }
+        for (String url : userHist.keySet())
+        {
+            double value = userHist.get(url)/sum;
+            userHist.put(url, value);
+
+            System.out.println(url + ": " + value);
+        }
+    }
+
     // IDF = log(total no of docs / (1 + docs containing word))
-    // TODO: allow for extra metrics in the scoring (country, personality, etc.)
+    // allow for extra metrics in the scoring (country, personality, etc.)
     // userBonus = 1 + (prevVisits(url) / totPrevVisits)
     public double calcScore(double score, String url, String word, String country) {
 
@@ -53,26 +88,36 @@ public class Ranker {
 
         double docWeight = Math.log(1.0 * totDocs / (1 + termDocs));
         double countryBonus = 1;
+        double historyBonus = 1;
+
+        URL u = null;
 
         try {
-            URL u = new URL(url);
-            if (!(country == null) && country.length() > 1 && u.getHost().endsWith(country)) {
-                countryBonus = 3;
-            }
+            u = new URL(url);
         }
         catch (MalformedURLException e) {
             System.out.println("Malformed URL: " + e.getMessage());
         }
+        if (u != null) {
+            if (!(country == null) && country.length() > 1 && u.getHost().endsWith(country)) {
+                countryBonus = 3;
+            }
+            if (userHist.get(u.getHost()) != null) {
+                historyBonus = 1 + userHist.get(url);
+            }
+        }
 
-        return (score * docWeight * PageRank.getPageRank(url) * countryBonus);
+        return (score * docWeight * PageRank.getPageRank(url) * countryBonus * historyBonus);
     }
 
-    public List<TextSearchResult> rankText(List<String> searchWords, String country)
+    public List<TextSearchResult> rankText(List<String> searchWords, String country, String user)
     {
         HashMap<String, Double> urlScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
 
         setTotDocs();
+
+        getUserHistory(user);
 
         for(String word : searchWords)
         {
@@ -113,12 +158,14 @@ public class Ranker {
         return orderedResults;
     }
 
-    public List<ImageSearchResult> rankImages(List<String> searchWords, String country)
+    public List<ImageSearchResult> rankImages(List<String> searchWords, String country, String user)
     {
         HashMap<String, Double> imgScore = new HashMap<>();
         HashMap<String, Document> results = new HashMap<>();
 
         setTotDocs();
+
+        getUserHistory(user);
 
         for(String word : searchWords)
         {
@@ -253,9 +300,9 @@ public class Ranker {
 
         List<String> tests = Arrays.asList("gam", "work");
 
-        List<TextSearchResult> text = page(ranker.rankText(tests, "blog"), 1, 10);
+        List<TextSearchResult> text = page(ranker.rankText(tests, null, "5ed885d8a557cdd8ae96aebf"), 1, 10);
         List<TextSearchResult> phrases = page(ranker.rankPhrase(tests, "blog"), 1, 10);
-        List<ImageSearchResult> images = page(ranker.rankImages(tests, "uk"), 1, 10);
+        List<ImageSearchResult> images = page(ranker.rankImages(tests, "uk", "5ed885d8a557cdd8ae96aeff"), 1, 10);
 
         System.out.println("Text: " + text.size());
         for(TextSearchResult res : text)
@@ -291,5 +338,10 @@ public class Ranker {
             System.out.println(id + " " + url + " " + image + " " + title);
             System.out.println("Score: " + res.getScore());
         }
+
+        ConnectToDB.click("5ed885d8a557cdd8ae96aebf", "abc");
+        ConnectToDB.click("5ed885d8a557cdd8ae96aebf", "def");
+        ConnectToDB.click("5ed885d8a557cdd8ae96aeff", "abc");
+        ConnectToDB.click("5ed885d8a557cdd8ae96aeff", "xyz");
     }
 }
