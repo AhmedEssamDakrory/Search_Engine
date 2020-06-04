@@ -80,11 +80,11 @@ public class IndexingThread implements Runnable {
             }
         });
 
-        Elements images = document.getElementsByTag("img");
+        Elements images = document.select("img[src]");
         for (Element image : images) {
             HashMap<String, Integer> captionScore = new HashMap<String, Integer>();
-            String src = image.absUrl("src");
-            if (src.startsWith("data"))
+            String src = image.attr("src");
+            if (src.isEmpty() || src.startsWith("data"))
                 continue;
             src = getAbsoluteUrl(url, src);
             String width = image.attr("width");
