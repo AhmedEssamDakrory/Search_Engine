@@ -40,5 +40,4 @@ if [ "$all" == true ] || [ "$index" == true ]; then
   java -cp .:"../lib/*" main/indexer/Indexer
 fi
 sudo ufw allow 8080
-sudo chown -R tomcat /opt/tomcat/
 sudo systemctl restart tomcat
