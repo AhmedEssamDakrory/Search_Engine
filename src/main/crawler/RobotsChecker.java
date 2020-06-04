@@ -15,13 +15,20 @@ import java.util.regex.Pattern;
 
 
 public class RobotsChecker {
-
+	// map to hold the hosts which are visited and their robots file is prepared or is being prepared.
     private ConcurrentHashMap<String, RobotsRules> concMap;
 
     public RobotsChecker() {
         this.concMap = new ConcurrentHashMap<String, RobotsRules>();
     }
-
+    
+    /**
+     * Holds the disallowed URLs for each host.
+     * ready flag to indicate that the robots file of this host is prepared.
+     * 
+     * @author AhmedEssam
+     *
+     */
     private class RobotsRules {
         public List<String> disallowedUrls;
         public boolean ready;
@@ -32,6 +39,11 @@ public class RobotsChecker {
         }
     }
 
+    /**
+     * Return true if the URLs is allowed by robots.
+     * @param url
+     * @return
+     */
     public boolean isUrlAllowed(String url) {
         this.putifAbsentRules(url);
         String hostName = null;
@@ -54,6 +66,11 @@ public class RobotsChecker {
         return true;
     }
 
+    /**
+     * Checks if the host and its rules not visited before, put it in the hash map then go to prepare the rules making the ready flag
+     * false to prevent the other threads to do the same thing and wait for the rule to be ready. 
+     * @param url
+     */
     private void putifAbsentRules(String url) {
         String hostName = null;
         try {
@@ -65,15 +82,17 @@ public class RobotsChecker {
         if (hostName == null) {
             return;
         }
-
+        // if absent put it in the map
         RobotsRules rules = this.concMap.putIfAbsent(hostName, new RobotsRules());
-
+        // if null this means it was not visited.
         if (rules == null) {
             LogOutput.printMessage("Host : " + hostName + " first time prepare robots.txt");
+            // go prepare the rules for this host.
             this.update(hostName, this.parseRobotsFile(this.readRobotsFile(url)));
             return;
         }
-
+        // if rules not equal null, that means that the robots text of this host is being prepared,
+        // wait for it to be ready by checking the ready flag.
         synchronized (rules) {
             while (!rules.ready) {
                 try {
@@ -86,6 +105,11 @@ public class RobotsChecker {
         }
     }
 
+    /**
+     *  read robots file and return list of its lines
+     * @param url
+     * @return
+     */
     public List<String> readRobotsFile(String url) {
         List<String> lines = new ArrayList<String>();
         try {
@@ -109,6 +133,11 @@ public class RobotsChecker {
         return lines;
     }
 
+    /**
+     * parse the robots file lines and extract the disallowed URLs.
+     * @param fileLines
+     * @return
+     */
     public List<String> parseRobotsFile(List<String> fileLines) {
         List<String> disallowedUrls = new ArrayList<String>();
         String userAgent = "";
@@ -125,6 +154,11 @@ public class RobotsChecker {
         return disallowedUrls;
     }
 
+    /**
+     * Prepare Regex pattern of the disallowed URls so that can compare the sent URLs with them by regular expressions
+     * @param p
+     * @return
+     */
     public String preparePattern(String p) {
         p = p.replaceAll("\\.", "\\\\.");
         p = p.replaceAll("\\?", "[?]"); // match "?" mark.
@@ -134,6 +168,13 @@ public class RobotsChecker {
         return p;
     }
 
+    /**
+     * After parsing the Robots file and all rules are ready, 
+     * update the ready flag of the host rules and assign them.
+     * 
+     * @param hostName
+     * @param disallowedUrls
+     */
     private void update(String hostName, List<String> disallowedUrls) {
         RobotsRules rules = this.concMap.get(hostName);
         synchronized (rules) {

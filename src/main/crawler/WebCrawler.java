@@ -23,6 +23,11 @@ public class WebCrawler {
 	RobotsChecker robotsChecker;
 	ConcurrentHashMap<String,Boolean> isVisited;
 	
+	/**
+	 * Initializing WebCrawler Class
+	 * 
+	 * @throws IOException
+	 */
 	public WebCrawler() throws IOException {
 		linkedQueue = new LinkedBlockingQueue<String>();
 		threads = new ArrayList<Thread>();
@@ -33,15 +38,22 @@ public class WebCrawler {
 		LogOutput.init();
 	}
 	
+	/**
+	 *In case of crawling for the first time, Fill the queue with URLs from the seeders file.
+	 *In case of re-crawling, fill the queue with the non-crawled URLs from the database.   
+	 * 
+	 * @throws IOException
+	 */
 	private void initQueueWithSeededUrls() throws IOException {
-		List<String> seeders = ConnectToDB.getAllNotCrawledUrls();
-		if(seeders.size() == 0) {
+		// Get the extracted URLs which not crawled yet form the database.
+		List<String> seeders = ConnectToDB.getAllNotCrawledUrls();  
+		if(seeders.size() == 0) { // check if there are no such URLs take URLs form the seeders file.
 			System.out.println("Crawling for the first time...");
-			File file = new File(Constants.CRAWLING_SEEDER_FILE);
+			File file = new File(Constants.CRAWLING_SEEDER_FILE); // read seeders file.
 			BufferedReader br = new BufferedReader(new FileReader(file)); 
 			String st;
 			while ((st = br.readLine()) != null) {
-				linkedQueue.offer(st);
+				linkedQueue.offer(st); // initialize queue with seeders.
 				seeders.add(st);
 			}
 			ConnectToDB.seededUrlsToCrawl(seeders);
@@ -49,11 +61,16 @@ public class WebCrawler {
 		} else {
 			System.out.println("Recrawling....");
 			for(String url : seeders) {
-				linkedQueue.offer(url);
+				linkedQueue.offer(url); // initialize queue form database.
 			}
 		}
 	}
 	
+	/**
+	 * Initialize the queue with URLs then Start a number of Crawling threads.
+	 * @param numberOfThreads
+	 * @throws IOException
+	 */
 	public void startCrawling(int numberOfThreads) throws IOException {
 		// initialize...
 		this.initQueueWithSeededUrls();
@@ -68,10 +85,13 @@ public class WebCrawler {
 		this.waitForThreadsToFinish();
 	}
 	
+	/**
+	 * Wait for all running Threads to finish.
+	 */
 	private void waitForThreadsToFinish() {
 		for(Thread t : threads) {
 			try {
-				t.join();
+				t.join(); // wait for thread to finish.
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
