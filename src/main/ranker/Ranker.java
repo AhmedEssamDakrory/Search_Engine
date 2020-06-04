@@ -1,20 +1,14 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
+import main.model.ImageSearchResult;
+import main.model.TextSearchResult;
+import main.utilities.ConnectToDB;
 import org.bson.Document;
 
-import main.model.SearchResult;
-import main.model.TextSearchResult;
-import main.model.ImageSearchResult;
-
-import main.utilities.ConnectToDB;
-
-import static main.ranker.PageRank.*;
-
-import java.util.*;
-
-import java.net.URL;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.*;
 
 public class Ranker {
     private Integer totDocs = null;
@@ -223,7 +217,7 @@ public class Ranker {
         String strID = doc.get("id").toString();
         Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
         String url = doc.get("url").toString();
-        String icon = "Icon";
+        String icon = doc.get("iconUrl").toString();
         String title = doc.get("title").toString();
         String description = "Description";
 

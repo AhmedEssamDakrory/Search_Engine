@@ -1,9 +1,11 @@
 package main.indexer;
 
+import main.queryprocessor.QueryProcessor;
 import main.utilities.ConnectToDB;
 import main.utilities.Constants;
-import main.queryprocessor.QueryProcessor;
 import org.jsoup.Jsoup;
+import org.jsoup.internal.StringUtil;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -52,18 +54,19 @@ public class IndexingThread implements Runnable {
         plainText = plainText.replaceAll("[^0-9a-zA-Z]", " ");
         String[] words = plainText.split(" ");
         QueryProcessor q = QueryProcessor.getInstance();
-        for (int i=0; i<words.length; i++){
+        for (int i = 0; i < words.length; i++) {
             String stemmedWord = q.processWord(words[i]);
             if (stemmedWord == null) continue;
             Integer val = wordScores.getOrDefault(stemmedWord, null);
             if (val == null) continue;
-            if (val / Constants.MAX_SCORE == 0){
-                val += (i+1) * Constants.MAX_SCORE;
+            if (val / Constants.MAX_SCORE == 0) {
+                val += (i + 1) * Constants.MAX_SCORE;
                 totalScore += wordScores.get(stemmedWord);
             }
             wordScores.put(stemmedWord, val);
         }
-        ConnectToDB.pushToDatabase(url, document.text(), title, wordScores, totalScore);
+        document.setBaseUri(url);
+        ConnectToDB.pushToDatabase(url, document.text(), title, wordScores, totalScore, getIconUrl(document));
 
         //---------Process Images----------
         List<Map.Entry<String, Integer>> wordsSorted =
@@ -80,9 +83,10 @@ public class IndexingThread implements Runnable {
         Elements images = document.getElementsByTag("img");
         for (Element image : images) {
             HashMap<String, Integer> captionScore = new HashMap<String, Integer>();
-            String src = image.attr("src");
-            if (!(src.startsWith("http") || src.startsWith("//")))
+            String src = image.absUrl("src");
+            if (src.startsWith("data"))
                 continue;
+            src = getAbsoluteUrl(url, src);
             String width = image.attr("width");
             String height = image.attr("height");
             try {
@@ -110,6 +114,20 @@ public class IndexingThread implements Runnable {
             Integer prevScore = wordScore.getOrDefault(word, 0);
             wordScore.put(word, prevScore + score);
         }
+    }
+
+    private static String getIconUrl(Document document) {
+        Elements select = document.head().select("link[rel~=(?i).*icon]");
+        if (select.isEmpty()) return "";
+        String ref = select.first().attr("href");
+        if (ref.isEmpty()) return "";
+        return getAbsoluteUrl(document.baseUri(), ref);
+    }
+
+    private static String getAbsoluteUrl(String baseUrl, String ref) {
+        if (ref.startsWith("http")) return ref;
+        if (ref.startsWith("//")) return "https:" + ref;
+        return StringUtil.resolve(baseUrl, ref);
     }
 
     public static void main(String[] args) {

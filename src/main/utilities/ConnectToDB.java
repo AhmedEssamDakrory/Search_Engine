@@ -13,7 +13,8 @@ import org.bson.types.ObjectId;
 import java.util.*;
 
 import static com.mongodb.client.model.Aggregates.*;
-import static com.mongodb.client.model.Updates.*;
+import static com.mongodb.client.model.Updates.addToSet;
+import static com.mongodb.client.model.Updates.set;
 
 public class ConnectToDB {
     private static MongoClient mongo;
@@ -134,7 +135,7 @@ public class ConnectToDB {
     }
 
     //---------Indexer---------
-    public static void pushToDatabase(String url, String plainText, String title, HashMap<String, Integer> words, Integer totalScore) {
+    public static void pushToDatabase(String url, String plainText, String title, HashMap<String, Integer> words, Integer totalScore, String iconUrl) {
         removeUrlFromDatabase(url);
         for (String word : words.keySet()) {
             Integer idx_score = words.get(word);
@@ -147,13 +148,13 @@ public class ConnectToDB {
 
                     new org.bson.Document("$push", new org.bson.Document("urls",
                             new org.bson.Document("url", url)
-                                    .append("score", score).append("index", index-1))),
+                                    .append("score", score).append("index", index - 1))),
 
                     new UpdateOptions().upsert(true));
         }
 
         forwardIndexCollection.updateOne(Filters.eq("_id", url),
-                Updates.combine(Updates.set("text", plainText), Updates.set("title", title)),
+                Updates.combine(Updates.set("text", plainText), Updates.set("title", title), Updates.set("iconUrl", iconUrl)),
                 new UpdateOptions().upsert(true));
 
         crawlerInfoCollection.updateOne(Filters.eq("url", url),
@@ -188,16 +189,16 @@ public class ConnectToDB {
     public static FindIterable<Document> pullNotIndexedURLs() {
         return crawlerInfoCollection.find(new Document("crawled", true).append("indexed", false));
     }
-    
+
     public static String getText(String url) {
-    	 MongoCollection<Document> collection = database.getCollection("forwardIndex");
-         Document doc = collection.find(Filters.eq("_id", url)).first();
-         try {
-        	 String text = doc.get("text").toString();
-             return text;
-         } catch(NullPointerException e) {
-        	 return null;
-         }
+        MongoCollection<Document> collection = database.getCollection("forwardIndex");
+        Document doc = collection.find(Filters.eq("_id", url)).first();
+        try {
+            String text = doc.get("text").toString();
+            return text;
+        } catch (NullPointerException e) {
+            return null;
+        }
     }
 
     // Ranker
@@ -220,7 +221,8 @@ public class ConnectToDB {
         Bson unwind3 = unwind("$title_url");
         Bson project3 = project(Projections.fields(
                 Projections.include("id", "url", "score", "popularity"),
-                Projections.computed("title", "$title_url.title")
+                Projections.computed("title", "$title_url.title"),
+                Projections.computed("iconUrl", "$title_url.iconUrl")
         ));
         // TODO: icon, description
 //        Bson lookup3 = lookup("users", "url", "")
@@ -257,15 +259,13 @@ public class ConnectToDB {
         List<Bson> pipeline = Arrays.asList(match, unwind1, project1, lookup, unwind2, project2, lookup2, unwind3, project3);
         return imagesIndexCollection.aggregate(pipeline);
     }
-    
-    public static int countAllDocs()
-    {
+
+    public static int countAllDocs() {
         Bson match = Filters.eq("indexed", true);
-        return (int)(crawlerInfoCollection.count(match));
+        return (int) (crawlerInfoCollection.count(match));
     }
 
-    public static int countTermDocs(String word)
-    {
+    public static int countTermDocs(String word) {
         Bson match = match(Filters.eq("_id", word));
         Bson unwind = unwind("$urls");
         Bson project = project(Projections.fields(
@@ -276,15 +276,13 @@ public class ConnectToDB {
 
         List<Bson> pipeline = Arrays.asList(match, unwind, project, count);
         AggregateIterable<Document> result = invertedIndexCollection.aggregate(pipeline);
-        if (result.first() == null)
-        {
+        if (result.first() == null) {
             return 0;
         }
         return Integer.parseInt(result.first().getOrDefault("count", 0).toString());
     }
 
-    public static AggregateIterable<Document> getAllIndexedData()
-    {
+    public static AggregateIterable<Document> getAllIndexedData() {
         Bson match = match(Filters.eq("indexed", true));
         Bson project = project(Projections.fields(
                 Projections.include("url")
@@ -294,16 +292,14 @@ public class ConnectToDB {
         return crawlerInfoCollection.aggregate(pipeline);
     }
 
-    public static void addOutgoingLink(String from, String to)
-    {
+    public static void addOutgoingLink(String from, String to) {
         Bson filter = Filters.eq("url", from);
         Bson update = addToSet("outgoing", to);
 
         crawlerInfoCollection.updateOne(filter, update);
     }
 
-    public static AggregateIterable<Document> getOutgoingLinks(String url)
-    {
+    public static AggregateIterable<Document> getOutgoingLinks(String url) {
         Bson match = match(Filters.eq("url", url));
         Bson unwind = unwind("$outgoing");
         Bson project = project(Projections.fields(
@@ -314,10 +310,8 @@ public class ConnectToDB {
         return crawlerInfoCollection.aggregate(pipeline);
     }
 
-    public static void savePageRank(HashMap<String, Integer> urlID, double[] pageRank)
-    {
-        for (String url : urlID.keySet())
-        {
+    public static void savePageRank(HashMap<String, Integer> urlID, double[] pageRank) {
+        for (String url : urlID.keySet()) {
             Bson filter = Filters.eq("_id", url);
             Bson update = set("pageRank", pageRank[urlID.get(url)]);
 
@@ -325,15 +319,13 @@ public class ConnectToDB {
         }
     }
 
-    public static boolean isPageRankAvailable(int dim)
-    {
+    public static boolean isPageRankAvailable(int dim) {
         Bson match = match(Filters.exists("pageRank"));
         Bson count = count();
 
         List<Bson> pipeline = Arrays.asList(match, count);
         AggregateIterable<Document> result = forwardIndexCollection.aggregate(pipeline);
-        if (result == null || result.first() == null)
-        {
+        if (result == null || result.first() == null) {
             return false;
         }
 
@@ -341,8 +333,7 @@ public class ConnectToDB {
         return (available == dim);
     }
 
-    public static AggregateIterable<Document> readPageRank()
-    {
+    public static AggregateIterable<Document> readPageRank() {
         Bson match = match(Filters.exists("pageRank"));
         Bson project = project(Projections.fields(
                 Projections.computed("url", "$_id"),
@@ -427,9 +418,9 @@ public class ConnectToDB {
         return trends;
     }
 
-    public static AggregateIterable<Document> getURLsDescriptions(List<String> urls, List<String> query, HashMap<String, String[]> descriptions){
+    public static AggregateIterable<Document> getURLsDescriptions(List<String> urls, List<String> query, HashMap<String, String[]> descriptions) {
         FindIterable<Document> descript = forwardIndexCollection.find(Filters.in("_id", urls));
-        for (Document doc: descript){
+        for (Document doc : descript) {
             String d = doc.getString("text");
             d = d.replaceAll("[^0-9a-zA-Z]", " ");
             String[] words = d.split(" ");
