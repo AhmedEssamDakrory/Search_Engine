@@ -39,15 +39,15 @@ public class WebCrawler {
 	}
 	
 	/**
-	 *In case of crawling for the first time, Fill the queue with URLs from the seeders file.
-	 *In case of re-crawling, fill the queue with the non-crawled URLs from the database.   
-	 * 
+	 * mode != 1, Fill the queue with URLs from the seeders file.
+	 * mode = 1, fill the queue with the non-crawled URLs from the database.   
+	 * @param mode
 	 * @throws IOException
 	 */
-	private void initQueueWithSeededUrls() throws IOException {
-		// Get the extracted URLs which not crawled yet form the database.
-		List<String> seeders = ConnectToDB.getAllNotCrawledUrls();  
-		if(seeders.size() == 0) { // check if there are no such URLs take URLs form the seeders file.
+	private void initQueueWithSeededUrls(int mode) throws IOException {
+		List<String> seeders = new ArrayList<String>();
+		if(mode == 1) seeders = ConnectToDB.getAllNotCrawledUrls(); // Get the extracted URLs which not crawled yet form the database.
+		if(seeders.size() == 0) { // check if there are no such URLs, take URLs form the seeders file.
 			System.out.println("Crawling for the first time...");
 			File file = new File(Constants.CRAWLING_SEEDER_FILE); // read seeders file.
 			BufferedReader br = new BufferedReader(new FileReader(file)); 
@@ -68,12 +68,14 @@ public class WebCrawler {
 	
 	/**
 	 * Initialize the queue with URLs then Start a number of Crawling threads.
+	 * 
+	 * @param mode
 	 * @param numberOfThreads
 	 * @throws IOException
 	 */
-	public void startCrawling(int numberOfThreads) throws IOException {
+	public void startCrawling(int mode, int numberOfThreads) throws IOException {
 		// initialize...
-		this.initQueueWithSeededUrls();
+		this.initQueueWithSeededUrls(mode);
 		// start threads.. 
 		for(int i = 0 ;i < numberOfThreads; ++i) {
 			Thread t = new Thread(new CrawlerThread(this.linkedQueue, this.isVisited, this.numExtractedLinks,
@@ -103,24 +105,23 @@ public class WebCrawler {
 		ConnectToDB.establishConnection();
 		
 		Scanner sc= new Scanner(System.in);
-		System.out.println("Enter 1 to recrawl from the existing urls in DB.........."); 
-		System.out.println("Or Enter any other number to clear DB and start crawling from the seeders.........."); 
-		int a= sc.nextInt();  
+		System.out.println("Enter 0 to clear db.........."); 
+		System.out.println("Enter 1 to recrawl from the existing urls in db.........."); 
+		System.out.println("Or Enter any other number (neither 0 nor 1) to start crawling from the seeders.........."); 
+		int mode = sc.nextInt();  
 		sc.close();
-		if(a != 1) {
+		if(mode == 0) {
 			ConnectToDB.dropCrawlerCollections();
+		} else {
+			ConnectToDB.createCrawlerCollections();
+			WebCrawler crawler = new WebCrawler();
+			double startTime  = (double)System.nanoTime();
+			crawler.startCrawling(mode ,20);
+			double endTime  = (double)System.nanoTime();
+			double totalTime = (endTime - startTime)* (1e-9);
+			System.out.println("finished");
+			System.out.println(totalTime);
 		}
-	
-		ConnectToDB.createCrawlerCollections();
-	
-		WebCrawler crawler = new WebCrawler();
-		double startTime  = (double)System.nanoTime();
-		crawler.startCrawling(20);
-		double endTime  = (double)System.nanoTime();
-		double totalTime = (endTime - startTime)* (1e-9);
-		System.out.println("finished");
-		System.out.println(totalTime);
-
 	}
 
 }
