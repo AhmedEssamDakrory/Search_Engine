@@ -4,14 +4,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
-import main.indexer.IndexingThread;
 import main.utilities.ConnectToDB;
-import main.utilities.Constants;
 
 public class PhraseSearchThread extends Thread {
 	LinkedBlockingQueue<String> linkedQueue;
@@ -32,26 +25,12 @@ public class PhraseSearchThread extends Thread {
 	public void start() {
 		while(!linkedQueue.isEmpty()) {
 			String url = linkedQueue.poll();
-			//System.out.println(url);
-			String pageName = ConnectToDB.getCrawledUrlID(url);
-			String html = IndexingThread.readHtml(Constants.CRAWLED_WEB_PAGES_FILE_PATH + pageName + ".html");
-			Document document = Jsoup.parse(html);
-			if(this.matched(document)) {
+			String text = ConnectToDB.getText(url);
+			if(text == null) continue;
+			List<String> t = PhraseSearch.preparePhrase(text);
+			if(kmp.match(t)) {
 					found.put(url, true);
 			}
 		}
-	}
-	
-	private boolean matched(Document document) {
-		for (String tagName : Constants.SCORES.keySet()) {
-            Elements tagsText = document.getElementsByTag(tagName);
-            for (Element tagText : tagsText) {
-            	List<String> t = PhraseSearch.preparePhrase(tagText.text());
-            	if(kmp.match(t)) {
-            		return true;
-            	}
-            }
-        }
-		return false;
 	}
 }

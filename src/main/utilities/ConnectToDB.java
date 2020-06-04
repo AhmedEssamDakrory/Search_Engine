@@ -188,6 +188,17 @@ public class ConnectToDB {
     public static FindIterable<Document> pullNotIndexedURLs() {
         return crawlerInfoCollection.find(new Document("crawled", true).append("indexed", false));
     }
+    
+    public static String getText(String url) {
+    	 MongoCollection<Document> collection = database.getCollection("forwardIndex");
+         Document doc = collection.find(Filters.eq("_id", url)).first();
+         try {
+        	 String text = doc.get("text").toString();
+             return text;
+         } catch(NullPointerException e) {
+        	 return null;
+         }
+    }
 
     // Ranker
     public static AggregateIterable<Document> findTextMatches(String word) {
