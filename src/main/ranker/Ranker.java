@@ -49,16 +49,11 @@ public class Ranker {
 
         AggregateIterable<Document> result = ConnectToDB.getUserData(user);
         int sum = 0;
-        System.out.println("Before loop: " + result.first());
         for (Document doc : result)
         {
-            System.out.println("\n" + doc);
-
             String url = doc.get("url").toString();
             String count = doc.get("count").toString();
 
-            System.out.println("URL= " + url);
-            System.out.println("Count= " + count);
             double value = Double.parseDouble(count);
             sum += value;
             userHist.put(url, value);
@@ -67,8 +62,6 @@ public class Ranker {
         {
             double value = userHist.get(url)/sum;
             userHist.put(url, value);
-
-            System.out.println(url + ": " + value);
         }
     }
 
