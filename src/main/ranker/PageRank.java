@@ -135,9 +135,6 @@ public class PageRank {
                 String url = doc.getString("url");
                 String pr = doc.get("pageRank").toString();
                 double rank = Double.parseDouble(pr);
-                System.out.println(url + " >< " + urlID.get(url));
-//                int idx = urlID.get(url);
-//                pageRank[idx] = rank;
                 pageRank[urlID.get(url)] = rank;
             }
         }

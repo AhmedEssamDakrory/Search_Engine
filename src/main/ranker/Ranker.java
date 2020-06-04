@@ -25,8 +25,6 @@ public class Ranker {
         ConnectToDB.establishConnection();
 
         PageRank.run(100, 0.85);
-
-        PageRank.print();
     }
 
     public void setTotDocs()
@@ -83,9 +81,10 @@ public class Ranker {
             AggregateIterable<Document> queryResult = ConnectToDB.findTextMatches(word);
             for (Document doc : queryResult)
             {
-                results.put(doc.get("url").toString(), doc);
-
                 String url = doc.get("url").toString();
+
+                results.put(url, doc);
+
                 double score = Double.parseDouble(doc.get("score").toString());
 
                 Double finalScore = calcScore(score, url, word, country);
@@ -105,14 +104,8 @@ public class Ranker {
         List<TextSearchResult> orderedResults = new ArrayList<>();
         for (Document doc : results.values())
         {
-            String strID = doc.get("id").toString();
-            Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
             String url = doc.get("url").toString();
-            String icon = "Icon";
-            String title = doc.get("title").toString();
-            String description = "Description";
-            Double score = urlScore.get(url);
-            TextSearchResult tmp = new TextSearchResult(id, url, icon, title, description, score);
+            TextSearchResult tmp = docToTextSearchResult(doc, urlScore.get(url));
             orderedResults.add(tmp);
         }
 
@@ -134,9 +127,10 @@ public class Ranker {
             AggregateIterable<Document> result = ConnectToDB.findImageMatches(word);
             for (Document doc : result)
             {
-                results.put(doc.get("image").toString(), doc);
-
                 String image = doc.get("image").toString();
+
+                results.put(image, doc);
+
                 String url = doc.get("url").toString();
                 double score = Double.parseDouble(doc.get("score").toString());
 
@@ -157,14 +151,8 @@ public class Ranker {
         List<ImageSearchResult> orderedResults = new ArrayList<>();
         for (Document doc : results.values())
         {
-            String strID = doc.get("id").toString();
-            Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
-            String pageUrl = doc.get("url").toString();
             String image = doc.get("image").toString();
-            String title = doc.get("title").toString();
-            Double score = imgScore.get(image);
-
-            ImageSearchResult tmp = new ImageSearchResult(id, image, pageUrl, title, score);
+            ImageSearchResult tmp = docToImageSearchResult(doc, imgScore.get(image));
             orderedResults.add(tmp);
         }
 
@@ -172,7 +160,86 @@ public class Ranker {
         return orderedResults;
     }
 
-//    public List<TextSearchResult> rankPhrases
+    public List<TextSearchResult> rankPhrase(List<String> searchWords, String country)
+    {
+        HashMap<String, Double> urlScore = new HashMap<>();
+        HashMap<String, Document> results = new HashMap<>();
+        HashMap<String, Integer> numFound = new HashMap<>();
+
+        setTotDocs();
+
+        int i = 0;
+        for(String word : searchWords)
+        {
+            setTermDocs(word);
+
+            AggregateIterable<Document> queryResult = ConnectToDB.findTextMatches(word);
+            for (Document doc : queryResult)
+            {
+                String url = doc.get("url").toString();
+
+                if (i != 0 && (numFound.get(url) == null || numFound.get(url) != i))
+                {
+                    continue;
+                }
+                else
+                {
+                    numFound.put(url, i + 1);
+                }
+
+                results.put(url, doc);
+
+                double score = Double.parseDouble(doc.get("score").toString());
+
+                Double finalScore = calcScore(score, url, word, country);
+
+                if (urlScore.get(url) == null)
+                {
+                    urlScore.put(url, finalScore);
+                }
+                else
+                {
+                    Double oldScore = urlScore.get(url);
+                    urlScore.put(url, (oldScore + finalScore));
+                }
+            }
+            ++i;
+        }
+
+        List<TextSearchResult> orderedResults = new ArrayList<>();
+        for (Document doc : results.values())
+        {
+            String url = doc.get("url").toString();
+            TextSearchResult tmp = docToTextSearchResult(doc, urlScore.get(url));
+            orderedResults.add(tmp);
+        }
+
+        orderedResults.sort(Comparator.comparing(TextSearchResult::getScore).reversed());
+        return orderedResults;
+    }
+
+    public static TextSearchResult docToTextSearchResult(Document doc, double score)
+    {
+        String strID = doc.get("id").toString();
+        Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
+        String url = doc.get("url").toString();
+        String icon = "Icon";
+        String title = doc.get("title").toString();
+        String description = "Description";
+
+        return new TextSearchResult(id, url, icon, title, description, score);
+    }
+
+    public static ImageSearchResult docToImageSearchResult(Document doc, double score)
+    {
+        String strID = doc.get("id").toString();
+        Integer id = Integer.parseInt(strID.substring(strID.length() - 4), 16);
+        String pageUrl = doc.get("url").toString();
+        String image = doc.get("image").toString();
+        String title = doc.get("title").toString();
+
+        return new ImageSearchResult(id, image, pageUrl, title, score);
+    }
 
     public static <E> List<E> page(List<E> list, int pageNumber, int resultsPerPage) {
         int startIndex = (pageNumber - 1) * resultsPerPage;
@@ -184,12 +251,13 @@ public class Ranker {
     {
         Ranker ranker = new Ranker();
 
-        List<String> tests = Arrays.asList("comput", "scienc");
+        List<String> tests = Arrays.asList("gam", "work");
 
         List<TextSearchResult> text = page(ranker.rankText(tests, "blog"), 1, 10);
+        List<TextSearchResult> phrases = page(ranker.rankPhrase(tests, "blog"), 1, 10);
         List<ImageSearchResult> images = page(ranker.rankImages(tests, "uk"), 1, 10);
 
-        System.out.println("Text:");
+        System.out.println("Text: " + text.size());
         for(TextSearchResult res : text)
         {
             String url = res.getUrl();
@@ -201,7 +269,19 @@ public class Ranker {
             System.out.println("Score: " + res.getScore());
         }
 
-        System.out.println("\nImages:");
+        System.out.println("\nPhrases: " + phrases.size());
+        for(TextSearchResult res : phrases)
+        {
+            String url = res.getUrl();
+            Integer id = res.getID();
+            String icon = res.getIconUrl();
+            String title = res.getTitle();
+            String description = res.getDescription();
+            System.out.println(id + " " + url + " " + icon + " " + title + " " + description);
+            System.out.println("Score: " + res.getScore());
+        }
+
+        System.out.println("\nImages: " + images.size());
         for(ImageSearchResult res : images)
         {
             String image = res.getImageUrl();
