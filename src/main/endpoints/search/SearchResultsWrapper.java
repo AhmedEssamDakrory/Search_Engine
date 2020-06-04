@@ -23,7 +23,7 @@ public class SearchResultsWrapper<Result> {
     }
 
     List<Result> page(int pageNumber) {
-        if (pageNumber >= describedBefore.length) return new ArrayList<>();
+        if (pageNumber > describedBefore.length) return new ArrayList<>();
         int startIndex = (pageNumber - 1) * resultsPerPage;
         int endIndex = pageNumber * resultsPerPage;
         List<Result> pageResults = results.subList(startIndex, Math.min(endIndex, results.size()));
