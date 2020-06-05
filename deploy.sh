@@ -1,6 +1,7 @@
-while getopts "apcilr" option; do
+while getopts "apbcilr" option; do
   case $option in
   a) all=true ;;
+  b) build=true ;;
   p) pull=true ;;
   c) crawl=true ;;
   i) index=true ;;
@@ -11,7 +12,8 @@ done
 cd ~/Search_Engine
 if [ "$all" == true ] || [ "$pull" == true ]; then
   git pull
-  # Compile
+fi
+if [ "$all" == true ] || [ "$build" == true ] || [ "$pull" == true ]; then
   find . -name "*.java" -print0 | xargs -0 javac -cp "lib/*":"lib/mongo-driver-3.6.3/*"
   sudo rm -rf /opt/tomcat/webapps/ROOT/WEB-INF/classes/main
   sudo cp -r src/main/ /opt/tomcat/webapps/ROOT/WEB-INF/classes
@@ -29,16 +31,17 @@ fi
 if [ "$all" == true ] || [ "$crawl" == true ]; then
   if [ "$resume" != true ]; then
     mongo search_engine --eval "db.crawler_info.drop()"
+    sudo rm -rf /opt/tomcat/data/pages/*
   fi
-  cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
-  java -cp .:"../lib/*" main/crawler/WebCrawler
+  cd /opt/tomcat/
+  java -cp webapps/ROOT/WEB-INF/classes:"webapps/ROOT/WEB-INF/lib/*" main.crawler.WebCrawler
 fi
 if [ "$all" == true ] || [ "$index" == true ]; then
   if [ "$resume" != true ]; then
     mongo search_engine --eval "db.invertedIndex.drop(); db.forwardIndex.drop(); db.imagesIndex.drop(); db.crawler_info.updateMany({}, {\$set: {indexed: false}})"
   fi
-  cd /opt/tomcat/webapps/ROOT/WEB-INF/classes
-  java -cp .:"../lib/*" main/indexer/Indexer
+  cd /opt/tomcat/
+  java -cp webapps/ROOT/WEB-INF/classes:"webapps/ROOT/WEB-INF/lib/*" main.indexer.Indexer
 fi
 sudo ufw allow 8080
 sudo systemctl restart tomcat

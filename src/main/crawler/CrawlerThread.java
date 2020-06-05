@@ -1,22 +1,17 @@
 package main.crawler;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.jsoup.Jsoup;  
-import org.jsoup.nodes.Document;  
-import org.jsoup.nodes.Element;  
-import org.jsoup.select.Elements;
 import main.utilities.ConnectToDB;
 import main.utilities.Constants;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class CrawlerThread extends Thread {
@@ -79,9 +74,9 @@ public class CrawlerThread extends Thread {
 					}
 					//download and save page content
 					this.downloadPage(doc, ConnectToDB.getCrawledUrlID(url));
+					ConnectToDB.markUrlAsCrawled(url); // mark URL as crawled in database.
 					if(!this.stopExtracting) {
 						this.extractLinks(url, doc);
-						ConnectToDB.markUrlAsCrawled(url); // mark URL as crawled in database.
 					}
 					
 				}
