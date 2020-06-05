@@ -1,17 +1,11 @@
 package main.ranker;
 
 import com.mongodb.client.AggregateIterable;
-import main.crawler.UrlNormalizer;
 import main.utilities.ConnectToDB;
-import main.utilities.Constants;
 import org.bson.Document;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
 
 public class PageRank {
     protected static Integer dim;
@@ -150,6 +144,11 @@ public class PageRank {
 
     public static double getPageRank(String url)
     {
+        Integer i = urlID.get(url);
+        if (i == null) {
+            System.out.println("It seems that the indexer is still running");
+            return 1;
+        }
         return pageRank[urlID.get(url)];
     }
 

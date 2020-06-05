@@ -15,7 +15,8 @@ if [ "$all" == true ] || [ "$pull" == true ]; then
   find . -name "*.java" -print0 | xargs -0 javac -cp "lib/*":"lib/mongo-driver-3.6.3/*"
   sudo rm -rf /opt/tomcat/webapps/ROOT/WEB-INF/classes/main
   sudo cp -r src/main/ /opt/tomcat/webapps/ROOT/WEB-INF/classes
-  sudo cp -r data/web.xml /opt/tomcat/webapps/ROOT/WEB-INF/
+  sudo cp data/web.xml /opt/tomcat/webapps/ROOT/WEB-INF/
+  sudo cp data/*.txt /opt/tomcat/data/
 fi
 
 # Copy libs
