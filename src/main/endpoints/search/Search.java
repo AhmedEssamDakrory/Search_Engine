@@ -42,9 +42,10 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
         String country = req.getParameter("country");
         String user = req.getParameter("user");
         SearchResultsWrapper.setResultsPerPage(per_page);
-        if (page_number == 1)
+        boolean invalidateCache = page_number == 1;
+        if (invalidateCache)
             queryProcessor.extractPersonName(country, query, this);
-        SearchResultsWrapper<Result> allResults = search(query, country, user);
+        SearchResultsWrapper<Result> allResults = search(query, country, user, invalidateCache);
         if (!allResults.isEmpty()) ConnectToDB.addSuggestion(query);
         String message = new Gson().toJson(allResults.page(page_number));
         resp.setContentType("application/json");
@@ -53,9 +54,9 @@ public abstract class Search<Result> extends HttpServlet implements PersonNameTh
     }
 
     // TODO userID
-    private SearchResultsWrapper<Result> search(String query, String country, String user) {
+    private SearchResultsWrapper<Result> search(String query, String country, String user, boolean invalidateCache) {
         String key = query + country + user;
-        if (cache.containsKey(key)) return cache.get(key);
+        if (!invalidateCache && cache.containsKey(key)) return cache.get(key);
         if (cache.size() >= CACHE_LIMIT)
             cache.remove(cache.entrySet().iterator().next().getKey());
         List<Result> allResults;
