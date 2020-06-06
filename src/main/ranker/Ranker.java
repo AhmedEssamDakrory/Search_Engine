@@ -78,7 +78,6 @@ public class Ranker {
         double historyBonus = 1;
 
         URL u = null;
-
         try {
             u = new URL(url);
         }
@@ -87,7 +86,7 @@ public class Ranker {
         }
         if (u != null) {
             if (!(country == null) && country.length() > 1 && u.getHost().endsWith(country)) {
-                countryBonus = 3;
+                countryBonus = 10;
             }
             if (userHist.get(u.getHost()) != null) {
                 historyBonus = 1 + userHist.get(u.getHost());

@@ -20,21 +20,21 @@ public class Constants {
 	public static final Integer DESCRIPTION_RANGE = 10;
 	public static final HashMap<String, Integer> SCORES = new HashMap<String, Integer>(){
 		{
-			put("title", 20);
-			put("h1", 10);
-			put("h2", 8);
-			put("h3", 6);
-			put("h4", 4);
-			put("h5", 3);
-			put("h6", 2);
+			put("title", 50);
+			put("h1", 30);
+			put("h2", 20);
+			put("h3", 10);
+			put("h4", 6);
+			put("h5", 5);
+			put("h6", 4);
 			put("p", 1);
-			put("strong", 2);
-			put("em", 2);
-			put("b", 1);
-			put("i", 1);
-			put("u", 1);
+			put("strong", 4);
+			put("em", 4);
+			put("b", 3);
+			put("i", 3);
+			put("u", 3);
 
-			put("a", 2);
+			put("a", 5);
 
 //			put("img", 2);	// attribute alt
 
